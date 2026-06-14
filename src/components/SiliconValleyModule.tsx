@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { useAdaptivePoll } from "@/hooks/useAdaptivePoll";
 import { useIntervalFetch } from "@/hooks/useIntervalFetch";
 import { ServiceUnavailablePanel } from "@/components/ui/ServiceUnavailablePanel";
 import { fetchSvEvents } from "@/services/svService";
@@ -10,9 +11,12 @@ import type { SvTickerItem } from "@/types/modules";
 export function SiliconValleyModule() {
   const config = getModuleConfig("silicon-valley");
   const fetcher = useCallback(() => fetchSvEvents(), []);
+  const dayInterval = config?.refreshInterval ?? 5 * 60 * 1000;
+  const poll = useAdaptivePoll("sv", dayInterval);
   const { data, loading, unavailableService } = useIntervalFetch({
     fetcher,
-    interval: config?.refreshInterval ?? 5 * 60 * 1000,
+    interval: poll.intervalMs,
+    paused: poll.paused,
     cacheKey: "jarvis-cache-v2-sv",
   });
 

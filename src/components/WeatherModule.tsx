@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { WeatherHudIcon } from "@/components/WeatherHudIcon";
 import { Panel } from "@/components/ui/Panel";
 import { ServiceUnavailablePanel } from "@/components/ui/ServiceUnavailablePanel";
+import { useAdaptivePoll } from "@/hooks/useAdaptivePoll";
 import { useIntervalFetch } from "@/hooks/useIntervalFetch";
 import { fetchWeather } from "@/services/weatherService";
 import { getModuleConfig } from "@/lib/moduleRegistry";
@@ -22,9 +23,12 @@ export function WeatherModule() {
   const [telemetryOpen, setTelemetryOpen] = useState(false);
   const config = getModuleConfig("weather");
   const fetcher = useCallback(() => fetchWeather(), []);
+  const dayInterval = config?.refreshInterval ?? 900000;
+  const poll = useAdaptivePoll("weather", dayInterval);
   const { data, loading, unavailableService } = useIntervalFetch({
     fetcher,
-    interval: config?.refreshInterval ?? 900000,
+    interval: poll.intervalMs,
+    paused: poll.paused,
     cacheKey: "jarvis-cache-v2-weather",
     healthId: "weather",
   });

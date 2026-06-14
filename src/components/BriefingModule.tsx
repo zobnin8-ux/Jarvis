@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { Panel } from "@/components/ui/Panel";
 import { ServiceUnavailablePanel } from "@/components/ui/ServiceUnavailablePanel";
+import { useAdaptivePoll } from "@/hooks/useAdaptivePoll";
 import { useIntervalFetch } from "@/hooks/useIntervalFetch";
 import { fetchBriefing } from "@/services/briefingService";
 import { getModuleConfig } from "@/lib/moduleRegistry";
@@ -10,9 +11,12 @@ import { getModuleConfig } from "@/lib/moduleRegistry";
 export function BriefingModule() {
   const config = getModuleConfig("ai-briefing");
   const fetcher = useCallback(() => fetchBriefing(), []);
+  const dayInterval = config?.refreshInterval ?? 60 * 60 * 1000;
+  const poll = useAdaptivePoll("briefing", dayInterval);
   const { data, loading, isStale, unavailableService } = useIntervalFetch({
     fetcher,
-    interval: config?.refreshInterval ?? 60 * 60 * 1000,
+    interval: poll.intervalMs,
+    paused: poll.paused,
     cacheKey: "jarvis-cache-v2-briefing",
     healthId: "briefing",
   });

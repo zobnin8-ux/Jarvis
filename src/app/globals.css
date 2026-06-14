@@ -1557,7 +1557,7 @@ body {
   color: rgba(234, 242, 255, 0.42);
 }
 
-/* ?? Space module · post-launch report ????????????????????? */
+/* ?? Space module ? post-launch report ????????????????????? */
 .launch-report {
   padding-top: 0.25rem;
 }
@@ -1648,7 +1648,7 @@ body {
   color: rgba(234, 242, 255, 0.28);
 }
 
-/* ?? Calendar module · Orbital Schedule ???????????????????? */
+/* ?? Calendar module ? Orbital Schedule ???????????????????? */
 .calendar-panel {
   position: relative;
 }
@@ -2637,5 +2637,105 @@ body {
   font-size: 0.48rem;
   letter-spacing: 0.08em;
   color: rgba(120, 255, 180, 0.65);
+}
+
+/* Night mode ? fewer animations, dimmer chrome, slower polls via JS */
+.night-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 3px;
+  border: 1px solid rgba(234, 242, 255, 0.14);
+  background: rgba(8, 14, 22, 0.55);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(234, 242, 255, 0.55);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.night-mode-toggle:hover {
+  border-color: rgba(85, 214, 255, 0.35);
+  color: rgba(234, 242, 255, 0.78);
+}
+
+.night-mode-toggle.is-night {
+  border-color: rgba(120, 180, 255, 0.28);
+  background: rgba(12, 18, 32, 0.75);
+  color: rgba(160, 190, 255, 0.88);
+}
+
+.night-mode-toggle-label {
+  opacity: 0.55;
+}
+
+.night-mode-toggle-value {
+  font-weight: 600;
+  color: inherit;
+}
+
+.command-shell.night-mode {
+  --scanline-opacity: 0.05;
+}
+
+.command-shell.night-mode .scanline {
+  opacity: var(--scanline-opacity);
+}
+
+.command-shell.night-mode .ambient-core-glow,
+.command-shell.night-mode .ambient-grid,
+.command-shell.night-mode .ambient-glow,
+.command-shell.night-mode .ambient-pulse,
+.command-shell.night-mode .ambient-parallax {
+  animation: none !important;
+}
+
+.command-shell.night-mode .ambient-glow,
+.command-shell.night-mode .ambient-core-glow {
+  opacity: 0.55;
+}
+
+.command-shell.night-mode .weather-atmosphere,
+.command-shell.night-mode .weather-fx,
+.command-shell.night-mode .weather-hud-icon {
+  animation: none !important;
+}
+
+.command-shell.night-mode .calendar-timeline-item.is-next .calendar-timeline-dot {
+  animation: none !important;
+}
+
+.command-shell.night-mode .sv-ticker-track {
+  animation: none !important;
+}
+
+.command-shell.night-mode .iss-telemetry-live-dot {
+  animation: none !important;
+  opacity: 0.65;
+}
+
+.command-shell.night-mode .zone-side,
+.command-shell.night-mode .zone-bottom {
+  opacity: 0.84;
+}
+
+.command-shell.night-mode .layer-ui .label {
+  opacity: 0.4;
+}
+
+.command-shell.night-mode.idle-mode .ambient-glow,
+.command-shell.night-mode.idle-mode .ambient-core-glow {
+  opacity: 0.4;
+}
+
+.command-shell.night-mode .hud-core--idle .core-glow,
+.command-shell.night-mode .hud-core--idle .core-glow-outer {
+  animation-duration: 48s;
 }
 

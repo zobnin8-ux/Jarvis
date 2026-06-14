@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import { LaunchCountdown } from "@/components/LaunchCountdown";
 import { Panel } from "@/components/ui/Panel";
 import { ServiceUnavailablePanel } from "@/components/ui/ServiceUnavailablePanel";
+import { useAdaptivePoll } from "@/hooks/useAdaptivePoll";
 import { useIntervalFetch } from "@/hooks/useIntervalFetch";
 import { formatPostLaunchRemaining } from "@/lib/spaceLaunch";
 import { fetchNasaNews } from "@/services/nasaNewsService";
@@ -17,6 +18,8 @@ const NASA_POLL_INTERVAL = 60 * 60 * 1000;
 export function SpaceModule() {
   const launchFetcher = useCallback(() => fetchSpaceLaunch(), []);
   const nasaFetcher = useCallback(() => fetchNasaNews(), []);
+  const spacePoll = useAdaptivePoll("space", SPACE_POLL_INTERVAL);
+  const nasaPoll = useAdaptivePoll("nasa", NASA_POLL_INTERVAL);
 
   const {
     data: launch,
@@ -25,14 +28,16 @@ export function SpaceModule() {
     unavailableService,
   } = useIntervalFetch({
     fetcher: launchFetcher,
-    interval: SPACE_POLL_INTERVAL,
+    interval: spacePoll.intervalMs,
+    paused: spacePoll.paused,
     cacheKey: "jarvis-cache-v2-space",
     healthId: "space",
   });
 
   const { data: nasaNews } = useIntervalFetch({
     fetcher: nasaFetcher,
-    interval: NASA_POLL_INTERVAL,
+    interval: nasaPoll.intervalMs,
+    paused: nasaPoll.paused,
     cacheKey: "jarvis-cache-v2-nasa-news",
   });
 

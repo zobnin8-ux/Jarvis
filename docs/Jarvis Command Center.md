@@ -17,7 +17,7 @@ updated: 2026-06-14
 
 # Jarvis — Personal Command Center
 
-> Личный HUD-дашборд: погода, календарь, космос, AI-брифинг, World News, радио с Core Reactor, голос и утренний ритуал.  
+> Личный HUD-дашборд: погода, календарь, космос, AI-брифинг, World News, радио с Core Reactor, голос, утренний ритуал и **ночной режим (День/Ночь)**.  
 > Браузер **Chrome / Edge**, порт dev **3001**.
 
 ---
@@ -35,6 +35,7 @@ updated: 2026-06-14
 | World News (RSS) | `src/config/news.ts` |
 | Space snapshot | `src/lib/server/spaceSnapshot.ts` |
 | ISS telemetry | `src/components/IssTelemetryModule.tsx` |
+| Ночной режим | `src/config/nightMode.ts`, `NightModeContext.tsx`, `useAdaptivePoll.ts` |
 
 ---
 
@@ -69,6 +70,7 @@ updated: 2026-06-14
 - **Morning Ritual** — голосовая сцена → [[#Утренний ритуал]]
 - **Voice Console** — toggle + пробел, `/api/ask` + TTS
 - **SV Ticker** — demo events + Finnhub (опц.)
+- **Night Mode** — тумблер в шапке → [[#Ночной режим]]
 
 ### Зарезервированы
 
@@ -108,6 +110,24 @@ updated: 2026-06-14
 **Ограничения:** TTS отдельный `Audio`; радио не паузим; «Стоп» / скрытая вкладка прерывает.
 
 Файлы: `MorningRitual.tsx`, `useRoutineEngine.ts`, `speechRecognition.ts`, `api/ritual/route.ts`
+
+---
+
+## Ночной режим
+
+**Тумблер:** шапка → «Режим: День / Ночь» · `localStorage`: `jarvis-night-mode`
+
+| Состояние | Опросы | UI |
+|-----------|--------|-----|
+| День | обычные интервалы модулей | все анимации |
+| Ночь, вкладка видна | редкие (`NIGHT_POLL_MS`) | ambient/weather/SV/ISS/calendar pulse off |
+| Ночь, вкладка скрыта | **paused** (0 трафика) | то же + данные из cache |
+
+Интервалы ночью (видимая вкладка): ISS 2 мин · Weather 60 мин · Calendar 30 мин · Briefing 3 ч · Space 60 мин · World News 30 мин · SV 30 мин.
+
+World News: слайды 10 с **не** крутятся ночью. Core Reactor / radio **не** трогаем.
+
+Файлы: `nightMode.ts`, `NightModeContext.tsx`, `useAdaptivePoll.ts`, `NightModeToggle.tsx`, `.command-shell.night-mode` в `globals.css`
 
 ---
 
@@ -194,7 +214,7 @@ npm test         # Vitest
 
 | Ver | Highlights |
 |-----|------------|
-| **v0.8** | Insight-брифинг, World News, ритуал, ISS в футере, NASA RSS, singleflight Spacedevs, Vitest |
+| **v0.8** | Insight-брифинг, World News, ритуал, **ночной режим**, ISS в футере, NASA RSS, singleflight Spacedevs, Vitest |
 | v0.7 | ISS (код), NASA RSS, voice toggle, убрана карта МКС |
 | v0.6 | Fix двойного TTS, cache v2, порт 3001 |
 | v0.5 | Briefing, Voice, SV ticker, circadian |
@@ -217,6 +237,7 @@ npm test         # Vitest
 - Briefing не должен падать, если упала только погода.
 - World News только `lg+`; на телефоне — только Space.
 - Spacedevs 429: один dev, не спамить API; singleflight на briefing+space.
+- Ночь: включить тумблер + свернуть вкладку — минимум нагрузки на API и CPU.
 - Ритуал: зарядка **не** генерится Claude — только mood/closing.
 
 ---

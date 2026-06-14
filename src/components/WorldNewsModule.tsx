@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Panel } from "@/components/ui/Panel";
 import { ServiceUnavailablePanel } from "@/components/ui/ServiceUnavailablePanel";
 import { NEWS_ROTATION_MS } from "@/config/news";
+import { useNightMode } from "@/context/NightModeContext";
+import { useAdaptivePoll } from "@/hooks/useAdaptivePoll";
 import { useIntervalFetch } from "@/hooks/useIntervalFetch";
 import { getModuleConfig } from "@/lib/moduleRegistry";
 import { fetchWorldNews } from "@/services/worldNewsService";
@@ -31,10 +33,14 @@ function formatRelativeTime(publishedAt: string, lang: NewsHeadline["lang"]): st
 
 export function WorldNewsModule() {
   const config = getModuleConfig("world-news");
+  const { isNightMode } = useNightMode();
   const fetcher = useCallback(() => fetchWorldNews(), []);
+  const dayInterval = config?.refreshInterval ?? 10 * 60 * 1000;
+  const poll = useAdaptivePoll("worldNews", dayInterval);
   const { data, loading, unavailableService } = useIntervalFetch({
     fetcher,
-    interval: config?.refreshInterval ?? 10 * 60 * 1000,
+    interval: poll.intervalMs,
+    paused: poll.paused,
     cacheKey: "jarvis-cache-v2-world-news",
   });
 
@@ -46,7 +52,7 @@ export function WorldNewsModule() {
   }, [data?.generatedAt]);
 
   useEffect(() => {
-    if (headlines.length <= 1) return;
+    if (isNightMode || headlines.length <= 1) return;
 
     let timer: number | undefined;
 
@@ -74,7 +80,7 @@ export function WorldNewsModule() {
       window.clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [headlines.length, data?.generatedAt]);
+  }, [headlines.length, data?.generatedAt, isNightMode]);
 
   const current = headlines[index];
 

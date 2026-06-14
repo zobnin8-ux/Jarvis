@@ -6,7 +6,7 @@
 **Репозиторий:** [github.com/zobnin8-ux/Jarvis](https://github.com/zobnin8-ux/Jarvis)  
 **Obsidian:** [docs/Jarvis Command Center.md](docs/Jarvis%20Command%20Center.md) — краткая заметка для vault  
 **Стек:** Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · Framer Motion  
-**Версия UI:** v0.8 — insight-брифинг, World News, утренний ритуал, голос (toggle), SV-тикер, циркадная тема, graceful degradation
+**Версия UI:** v0.8 — insight-брифинг, World News, утренний ритуал, **ночной режим (День/Ночь)**, ISS telemetry, голос (toggle), SV-тикер, циркадная тема, graceful degradation
 
 ---
 
@@ -14,26 +14,29 @@
 
 1. [Скриншот схемы](#схема-интерфейса)
 2. [Модули](#модули)
-3. [Быстрый старт](#быстрый-старт)
-4. [Переменные окружения](#переменные-окружения)
-5. [Где брать API-ключи](#где-брать-api-ключи)
-6. [Graceful degradation](#graceful-degradation)
-7. [Голосовая консоль](#голосовая-консоль)
-8. [API-роуты](#api-роуты)
-9. [Архитектура](#архитектура)
-10. [Надёжность и отказоустойчивость](#надёжность-и-отказоустойчивость)
-11. [Разработка](#разработка)
-12. [Безопасность](#безопасность)
-13. [Зарезервированные модули](#зарезервированные-модули)
-14. [Известные ограничения](#известные-ограничения)
-15. [Roadmap](#roadmap)
+3. [Ночной режим](#ночной-режим)
+4. [Быстрый старт](#быстрый-старт)
+5. [Переменные окружения](#переменные-окружения)
+6. [Где брать API-ключи](#где-брать-api-ключи)
+7. [Graceful degradation](#graceful-degradation)
+8. [Голосовая консоль](#голосовая-консоль)
+9. [API-роуты](#api-роуты)
+10. [Архитектура](#архитектура)
+11. [Надёжность и отказоустойчивость](#надёжность-и-отказоустойчивость)
+12. [Разработка](#разработка)
+13. [Безопасность](#безопасность)
+14. [Зарезервированные модули](#зарезервированные-модули)
+15. [Известные ограничения](#известные-ограничения)
+16. [Roadmap](#roadmap)
 
 ---
 
 ## Схема интерфейса
 
 ```
-┌─────────────────┬────────────────────────────┬─────────────────┐
+┌────────────────────────────────────────────────────────────────┐
+│  Command Center                          [Режим: День/Ночь] v0.8 │
+├─────────────────┬────────────────────────────┬─────────────────┤
 │    WEATHER      │      CLOCK + CORE          │    CALENDAR     │
 │  (атмосфера)    │   HUD-кольца, эквалайзер   │  week / NEXT    │
 │                 │   System Status            │  timeline       │
@@ -406,6 +409,30 @@ onFinal (один раз) → /api/ask → speak(text)
 
 ---
 
+## Ночной режим
+
+Тумблер **«Режим: День / Ночь»** в шапке — для ночной работы с Jarvis на вкладке: меньше сетевых запросов, меньше анимаций, ниже нагрузка на CPU/GPU. Выбор сохраняется в `localStorage` (`jarvis-night-mode`).
+
+| Модуль | День | Ночь (вкладка видна) | Ночь + вкладка скрыта |
+|--------|------|----------------------|------------------------|
+| ISS | 15 с | 2 мин | **пауза** |
+| Weather | 15 мин | 60 мин | **пауза** |
+| Calendar | 5 мин | 30 мин | **пауза** |
+| Briefing | 1 ч | 3 ч | **пауза** |
+| Space | 30 мин | 60 мин | **пауза** |
+| NASA RSS | 2 ч | 2 ч | **пауза** |
+| World News | 10 мин | 30 мин | **пауза** |
+| SV Ticker | 5 мин | 30 мин | **пауза** |
+
+**Поведение UI в ночи:**
+- приглушены ambient-анимации, scanline, weather FX, SV-тикер, ISS pulse, calendar pulse;
+- World News **не** ротирует слайды каждые 10 с;
+- Core Reactor, радио и ambient audio **не** меняются (реактор продолжает «дышать» от радио).
+
+**Файлы:** `nightMode.ts`, `NightModeContext.tsx`, `useAdaptivePoll.ts`, `NightModeToggle.tsx`, класс `.command-shell.night-mode` в `globals.css`.
+
+---
+
 ## API-роуты
 
 | Метод | Путь | Описание |
@@ -452,15 +479,18 @@ src/
 ├── components/           # UI-модули + WorldNews + MorningRitual + VoiceConsole
 ├── config/
 │   ├── theme.ts          # Темы + circadian palette
+│   ├── nightMode.ts      # Ночные интервалы опроса
 │   ├── news.ts           # RSS feeds World News
 │   ├── morningRoutine.ts # Фраза будилки + шаги зарядки
 │   ├── radio.ts          # ⚠️ не трогать без необходимости
 │   └── coreReactor.ts    # ⚠️ не трогать
 ├── context/
 │   ├── CoreResonanceContext.tsx   # Радио + AnalyserNode
-│   └── ModuleHealthContext.tsx    # Heartbeat для System Status
+│   ├── ModuleHealthContext.tsx    # Heartbeat для System Status
+│   └── NightModeContext.tsx       # День/Ночь + localStorage
 ├── hooks/
-│   ├── useIntervalFetch.ts        # Retry, cache, stale, unavailable
+│   ├── useIntervalFetch.ts        # Retry, cache, stale, unavailable, paused
+│   ├── useAdaptivePoll.ts         # Ночные интервалы + пауза при hidden tab
 │   ├── useCoreResonanceVisuals.ts # ⚠️ не трогать
 │   ├── useVoiceInput.ts / useVoiceOutput.ts
 │   ├── useRoutineEngine.ts        # Утренний ритуал
@@ -520,6 +550,14 @@ src/
 - Кэш последнего успешного ответа в `localStorage` (ключи **`jarvis-cache-v2-*`**).
 - Автораспаковка устаревших записей формата `{ ok, data }` (миграция с ранних сборок).
 - Возвращает: `data`, `loading`, `error`, `isStale`, `lastUpdated`, `unavailableService`.
+- Опция `paused: true` — без периодического опроса (ночь + скрытая вкладка); данные из кэша остаются на экране.
+
+### Ночной режим (`useAdaptivePoll`)
+
+- Тумблер в шапке → `NightModeContext` → все модули через `useAdaptivePoll(moduleId, dayMs)`.
+- Ночь + **видимая** вкладка: редкие интервалы из `NIGHT_POLL_MS`.
+- Ночь + **скрытая** вкладка: `paused: true` — нулевой фоновый трафик.
+- Анимации UI: CSS-класс `.command-shell.night-mode` (не трогает Core Reactor / radio stack).
 
 ### Space / Spacedevs
 
@@ -565,7 +603,7 @@ npm test         # Vitest (pure lib)
 | OpenWeather key blocked | Не запускайте несколько dev-серверов; лимит Free — 60 req/min; подождите ~1 ч или смените ключ |
 | Spacedevs 429 (Космос) | Лимит API; подождите 10–30 мин; один dev; после v0.8 briefing+space не бьют API дважды на старте |
 | SSL при `git push` | Windows: временно `GIT_SSL_NO_VERIFY=1` или настроить сертификаты |
-| Calendar пустой | Расшарить календарь на service account email |
+| Вентилятор шумит ночью | Включите **Ночь** в шапке; сверните вкладку — опросы останавливаются |
 
 ### Очистка кэша модулей (браузер)
 
@@ -630,7 +668,7 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 
 | Версия | Изменения |
 |--------|-----------|
-| **v0.8** | Insight-брифинг, World News, утренний ритуал, **ISS telemetry в футере**, NASA RSS в Space, **singleflight Spacedevs**, Vitest, logging |
+| **v0.8** | Insight-брифинг, World News, утренний ритуал, **ночной режим (День/Ночь)**, ISS telemetry в футере, NASA RSS в Space, **singleflight Spacedevs**, Vitest, logging |
 | **v0.7** | ISS Telemetry (код). NASA RSS в Space. Голос: toggle. Fix приветствия. Удалена карта МКС из Space. |
 | **v0.6** | Исправлен двойной TTS. Кэш модулей `jarvis-cache-v2-*`. **Fix:** бесконечный refetch в `useIntervalFetch` (убивал OpenWeather). Dev-порт **3001**. Серверный кэш погоды 10 мин. |
 | **v0.5** | AI Briefing, Voice Console, SV ticker, circadian theme, graceful degradation, ModuleHealth. |

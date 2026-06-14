@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useMemo, useState } from "react";
 import { Panel } from "@/components/ui/Panel";
 import { ServiceUnavailablePanel } from "@/components/ui/ServiceUnavailablePanel";
+import { useAdaptivePoll } from "@/hooks/useAdaptivePoll";
 import { useIntervalFetch } from "@/hooks/useIntervalFetch";
 import { categoryLabel, formatMinutesUntil } from "@/lib/calendar";
 import { fetchCalendar } from "@/services/calendarService";
@@ -19,9 +20,12 @@ export function CalendarModule() {
   const [weekOpen, setWeekOpen] = useState(false);
   const config = getModuleConfig("calendar");
   const fetcher = useCallback(() => fetchCalendar(), []);
+  const dayInterval = config?.refreshInterval ?? 300000;
+  const poll = useAdaptivePoll("calendar", dayInterval);
   const { data, loading, unavailableService } = useIntervalFetch({
     fetcher,
-    interval: config?.refreshInterval ?? 300000,
+    interval: poll.intervalMs,
+    paused: poll.paused,
     cacheKey: "jarvis-cache-v2-calendar",
     healthId: "calendar",
   });

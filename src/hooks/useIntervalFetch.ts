@@ -19,6 +19,8 @@ interface UseIntervalFetchOptions<T> {
   interval: number;
   cacheKey?: string;
   healthId?: ModuleHealthId;
+  /** When true — no periodic polling (initial load still runs). */
+  paused?: boolean;
 }
 
 interface UseIntervalFetchResult<T> {
@@ -87,6 +89,7 @@ export function useIntervalFetch<T>({
   interval,
   cacheKey,
   healthId,
+  paused = false,
 }: UseIntervalFetchOptions<T>): UseIntervalFetchResult<T> {
   const reportHealth = useContext(ModuleHealthContext)?.reportHealth;
   const fetcherRef = useRef(fetcher);
@@ -190,13 +193,18 @@ export function useIntervalFetch<T>({
   loadRef.current = load;
 
   useEffect(() => {
+    if (paused) {
+      setLoading(false);
+      return;
+    }
+
     const tick = () => {
       void loadRef.current();
     };
     tick();
     const timer = setInterval(tick, interval);
     return () => clearInterval(timer);
-  }, [interval]);
+  }, [interval, paused]);
 
   return {
     data,

@@ -13,6 +13,8 @@ import { AmbientAudioModule } from "@/components/AmbientAudioModule";
 import { SiliconValleyModule } from "@/components/SiliconValleyModule";
 import { THEMES, THEME } from "@/config/theme";
 import { useIdleMode } from "@/hooks/useIdleMode";
+import { useNightMode } from "@/context/NightModeContext";
+import { NightModeToggle } from "@/components/NightModeToggle";
 import { useMounted } from "@/hooks/useMounted";
 import { VoiceConsole } from "@/components/VoiceConsole";
 import { MorningRitual } from "@/components/MorningRitual";
@@ -26,12 +28,18 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ futureSlot }: DashboardLayoutProps) {
   const mounted = useMounted();
   const isIdle = useIdleMode(45_000);
+  const { isNightMode } = useNightMode();
+
+  const shellClass = [
+    "command-shell relative flex h-screen w-screen flex-col overflow-hidden bg-bg p-4 md:p-6 lg:p-8",
+    isIdle ? "idle-mode" : "",
+    isNightMode ? "night-mode" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div
-      className={`command-shell relative flex h-screen w-screen flex-col overflow-hidden bg-bg p-4 md:p-6 lg:p-8${isIdle ? " idle-mode" : ""}`}
-      suppressHydrationWarning
-    >
+    <div className={shellClass} suppressHydrationWarning>
       <AmbientBackground />
       <div className="scanline" />
 
@@ -42,8 +50,11 @@ export function DashboardLayout({ futureSlot }: DashboardLayoutProps) {
         className="layer-ui relative z-20 mb-2 flex shrink-0 items-center justify-between px-2"
       >
         <div className="label">Command Center</div>
-        <div className="label text-white/25">
-          {THEMES[THEME].label} · v0.8
+        <div className="flex items-center gap-3">
+          <NightModeToggle />
+          <div className="label text-white/25">
+            {THEMES[THEME].label} · v0.8
+          </div>
         </div>
       </motion.header>
 

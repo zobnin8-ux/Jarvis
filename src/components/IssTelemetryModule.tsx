@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useAdaptivePoll } from "@/hooks/useAdaptivePoll";
 import { useIntervalFetch } from "@/hooks/useIntervalFetch";
 import { fetchIssTelemetry } from "@/services/issTelemetryService";
 import type { IssTelemetryData } from "@/types/modules";
 
-const POLL_MS = 15_000;
+const DAY_POLL_MS = 15_000;
 
 function formatCoord(value: number, axis: "lat" | "lon"): string {
   const abs = Math.abs(value).toFixed(2);
@@ -20,9 +21,11 @@ function dataAgeSec(updatedAt: string): number {
 
 export function IssTelemetryModule() {
   const fetcher = useCallback(() => fetchIssTelemetry(), []);
+  const poll = useAdaptivePoll("iss", DAY_POLL_MS);
   const { data } = useIntervalFetch({
     fetcher,
-    interval: POLL_MS,
+    interval: poll.intervalMs,
+    paused: poll.paused,
     cacheKey: "jarvis-cache-v2-iss-telemetry",
   });
 
