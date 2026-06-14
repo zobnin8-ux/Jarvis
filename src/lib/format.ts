@@ -18,10 +18,12 @@ export function formatDate(date: Date): string {
 
 export function getGreeting(date: Date, name: string): string {
   const hour = date.getHours();
-  let period = "Evening";
+  let period: string;
 
-  if (hour < 12) period = "Morning";
-  else if (hour < 17) period = "Afternoon";
+  if (hour >= 5 && hour < 12) period = "Morning";
+  else if (hour >= 12 && hour < 17) period = "Afternoon";
+  else if (hour >= 17 && hour < 22) period = "Evening";
+  else period = "Night";
 
   return `Good ${period}, ${name}`;
 }

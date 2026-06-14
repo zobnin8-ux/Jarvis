@@ -16,6 +16,7 @@ import { useIdleMode } from "@/hooks/useIdleMode";
 import { useMounted } from "@/hooks/useMounted";
 import { VoiceConsole } from "@/components/VoiceConsole";
 import { MorningRitual } from "@/components/MorningRitual";
+import { IssTelemetryModule } from "@/components/IssTelemetryModule";
 import { WorldNewsModule } from "@/components/WorldNewsModule";
 
 interface DashboardLayoutProps {
@@ -103,6 +104,11 @@ export function DashboardLayout({ futureSlot }: DashboardLayoutProps) {
             <AmbientAudioModule />
             <ModuleErrorBoundary name="Morning Ritual">
               <MorningRitual />
+            </ModuleErrorBoundary>
+          </div>
+          <div className="footer-telemetry hidden min-w-0 flex-1 md:flex md:justify-center">
+            <ModuleErrorBoundary name="ISS Telemetry">
+              <IssTelemetryModule />
             </ModuleErrorBoundary>
           </div>
           <div className="hidden w-[min(100%,280px)] sm:flex sm:justify-end">

@@ -2448,3 +2448,194 @@ body {
   width: 100%;
 }
 
+.footer-telemetry {
+  max-width: 34rem;
+}
+
+/* ISS telemetry (footer) */
+.iss-telemetry {
+  width: 100%;
+  max-width: 34rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(85, 214, 255, 0.1);
+  background: rgba(10, 16, 24, 0.45);
+}
+
+.iss-telemetry-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  margin-bottom: 0.45rem;
+}
+
+.iss-telemetry-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.14em;
+  color: rgba(120, 255, 180, 0.85);
+}
+
+.iss-telemetry-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(120, 255, 180, 0.9);
+  box-shadow: 0 0 8px rgba(120, 255, 180, 0.55);
+  animation: iss-live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes iss-live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.iss-telemetry-id {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.48rem;
+  letter-spacing: 0.1em;
+  color: rgba(234, 242, 255, 0.38);
+}
+
+.iss-telemetry-badge {
+  margin-left: auto;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.48rem;
+  letter-spacing: 0.12em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 2px;
+  border: 1px solid rgba(234, 242, 255, 0.12);
+  color: rgba(234, 242, 255, 0.45);
+}
+
+.iss-telemetry-badge--sun {
+  border-color: rgba(255, 200, 120, 0.35);
+  color: rgba(255, 200, 120, 0.85);
+}
+
+.iss-telemetry-place {
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: rgba(234, 242, 255, 0.88);
+  margin-bottom: 0.25rem;
+}
+
+.iss-telemetry-sub {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+  color: rgba(234, 242, 255, 0.42);
+  margin-bottom: 0.55rem;
+}
+
+.iss-telemetry-speed-bar {
+  position: relative;
+  height: 0.35rem;
+  margin-bottom: 0.65rem;
+  border-radius: 2px;
+  background: rgba(85, 214, 255, 0.08);
+  overflow: hidden;
+}
+
+.iss-telemetry-speed-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    rgba(85, 214, 255, 0.35),
+    rgba(120, 255, 180, 0.75)
+  );
+  transition: width 0.6s ease;
+}
+
+.iss-telemetry-speed-min,
+.iss-telemetry-speed-max {
+  position: absolute;
+  top: 0.55rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.42rem;
+  letter-spacing: 0.06em;
+  color: rgba(234, 242, 255, 0.28);
+}
+
+.iss-telemetry-speed-min {
+  left: 0;
+}
+
+.iss-telemetry-speed-max {
+  right: 0;
+}
+
+.iss-telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+}
+
+.iss-telemetry-metric-value {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  color: rgba(234, 242, 255, 0.82);
+}
+
+.iss-telemetry-metric-label {
+  margin-top: 0.1rem;
+  font-size: 0.46rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(234, 242, 255, 0.32);
+}
+
+.iss-telemetry-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(85, 214, 255, 0.08);
+}
+
+.iss-telemetry-orbit {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.iss-telemetry-orbit-text {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.48rem;
+  letter-spacing: 0.04em;
+  color: rgba(234, 242, 255, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.iss-telemetry-orbit-text strong {
+  font-weight: 600;
+  color: rgba(234, 242, 255, 0.78);
+}
+
+.iss-telemetry-orbit-ring {
+  flex-shrink: 0;
+}
+
+.iss-telemetry-age {
+  flex-shrink: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.48rem;
+  letter-spacing: 0.08em;
+  color: rgba(120, 255, 180, 0.65);
+}
+

@@ -10,6 +10,24 @@ import type { AskResponseData } from "@/types/modules";
 
 type VoiceConsoleState = "idle" | "listening" | "thinking" | "speaking";
 
+const ASK_TIMEOUT_MS = 45_000;
+const SPEAK_TIMEOUT_MS = 90_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("timeout")), ms);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
 export function VoiceConsole() {
   const { speak, stop: stopSpeech } = useVoiceOutput();
   const [consoleState, setConsoleState] = useState<VoiceConsoleState>("idle");
@@ -17,11 +35,16 @@ export function VoiceConsole() {
   const [unavailable, setUnavailable] = useState<string | null>(null);
   const [liveTranscript, setLiveTranscript] = useState("");
   const processingRef = useRef(false);
+  const isListeningRef = useRef(false);
 
   const processQuery = useCallback(
     async (query: string) => {
       const trimmed = query.trim();
-      if (!trimmed || processingRef.current) return;
+      if (!trimmed) {
+        setConsoleState("idle");
+        return;
+      }
+      if (processingRef.current) return;
 
       processingRef.current = true;
       setConsoleState("thinking");
@@ -30,11 +53,14 @@ export function VoiceConsole() {
       stopSpeech();
 
       try {
-        const response = await fetch("/api/ask", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ query: trimmed }),
-        });
+        const response = await withTimeout(
+          fetch("/api/ask", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ query: trimmed }),
+          }),
+          ASK_TIMEOUT_MS
+        );
 
         const json = (await response.json()) as ApiResponse<AskResponseData>;
 
@@ -52,7 +78,7 @@ export function VoiceConsole() {
 
         setAnswer(json.data.text);
         setConsoleState("speaking");
-        await speak(json.data.text);
+        await withTimeout(speak(json.data.text), SPEAK_TIMEOUT_MS);
         setConsoleState("idle");
       } catch {
         setUnavailable("claude");
@@ -76,11 +102,30 @@ export function VoiceConsole() {
     onFinal: handleFinalTranscript,
   });
 
+  isListeningRef.current = isListening;
+
   useEffect(() => {
     if (isListening) {
       setLiveTranscript(transcript);
     }
   }, [isListening, transcript]);
+
+  const toggleListening = useCallback(() => {
+    if (processingRef.current) return;
+    if (consoleState === "thinking" || consoleState === "speaking") return;
+
+    if (isListeningRef.current) {
+      stop();
+      return;
+    }
+
+    stopSpeech();
+    setAnswer(null);
+    setUnavailable(null);
+    setLiveTranscript("");
+    start();
+    setConsoleState("listening");
+  }, [consoleState, start, stop, stopSpeech]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -95,54 +140,27 @@ export function VoiceConsole() {
         return;
       }
       event.preventDefault();
-      if (!isListening && !processingRef.current) {
-        start();
-        setConsoleState("listening");
-      }
-    };
-
-    const onKeyUp = (event: KeyboardEvent) => {
-      if (event.code !== "Space") return;
-      if (isListening) stop();
+      toggleListening();
     };
 
     window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-    };
-  }, [isListening, start, stop]);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [toggleListening]);
 
   if (!supported) return null;
-
-  const handlePointerDown = () => {
-    if (processingRef.current) return;
-    stopSpeech();
-    start();
-    setConsoleState("listening");
-    setAnswer(null);
-    setUnavailable(null);
-    setLiveTranscript("");
-  };
-
-  const handlePointerUp = () => {
-    if (isListening) stop();
-  };
 
   return (
     <div className="voice-console" aria-label="Voice console">
       <button
         type="button"
         className={`voice-console-mic is-${consoleState}`}
-        onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
+        onClick={toggleListening}
         aria-pressed={isListening}
-        aria-label="Push to talk"
+        aria-label="Toggle voice input"
+        disabled={consoleState === "thinking" || consoleState === "speaking"}
       >
         <span className="voice-console-mic-icon" aria-hidden>
-          {consoleState === "listening" ? "◉" : "◯"}
+          {isListening ? "◉" : "◯"}
         </span>
       </button>
 
@@ -171,7 +189,9 @@ export function VoiceConsole() {
           </motion.p>
         )}
 
-        <div className="voice-console-hint">Удерживайте пробел или кнопку</div>
+        <div className="voice-console-hint">
+          Пробел — начать · пробел — отправить
+        </div>
       </div>
     </div>
   );

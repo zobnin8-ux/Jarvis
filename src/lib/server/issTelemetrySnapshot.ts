@@ -22,7 +22,7 @@ async function fetchWtia(): Promise<WtiaPayload | null> {
   try {
     const response = await fetch(WTIA_URL, {
       headers: { "User-Agent": "Jarvis-Command-Center/1.0" },
-      next: { revalidate: 15 },
+      cache: "no-store",
     });
     if (!response.ok) {
       logWarn("iss-telemetry.wtia", `HTTP ${response.status}`);

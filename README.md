@@ -45,7 +45,7 @@
 ├────────────────────────────────────────────────────────────────┤
 │  SV TICKER — tech-события + котировки (бегущая строка)         │
 ├────────────────────────────────────────────────────────────────┤
-│  Ambient Audio + Утро/Ритуал  ·  Voice Console ◯               │
+│  Ambient Audio + Утро/Ритуал  ·  ISS TELEMETRY  ·  Voice Console ◯      │
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -132,15 +132,15 @@
 | **Post-launch** | Mission Report: outcome, orbit, booster, payload, новость (SpaceX/NASA) |
 | **NASA** | Последний breaking news из RSS NASA |
 
-### ISS Telemetry (опционально, в коде)
+### ISS Telemetry (футер)
 
 | | |
 |---|---|
-| **Статус** | Модуль и `/api/iss-telemetry` есть в репозитории; в **v0.8 layout** не подключён (можно вернуть в футер) |
+| **Расположение** | Центр футера между Ambient Audio / Ритуал и Voice Console (экраны **md+**) |
 | **Источник** | [Where The ISS At](https://wheretheiss.at/) — позиция, скорость, SUNLIT/ECLIPSE |
 | **Геокодинг** | Open-Meteo reverse geocoding → «город, регион, страна» |
 | **Орбита** | TLE Celestrak + `satellite.js` — номер витка за сутки, % текущего витка |
-| **Refresh** | Клиент 15–20 с; сервер `cache: no-store` |
+| **Refresh** | Клиент 15 с; сервер `cache: no-store` |
 | **Ключи** | Не нужны |
 | **UI** | LIVE POSITION · NORAD 25544 · место над Землёй · шкала скорости · сетка Alt/Speed/Lat/Lon |
 
@@ -550,7 +550,7 @@ npm test         # Vitest (pure lib)
 | Все модули Stale / «временно недоступен» | Проверить сеть; перезапустить `npm run dev`; API: `Invoke-RestMethod localhost:3001/api/weather` |
 | Два голоса одновременно | Обновить репо; перезапустить dev — исправлено в `useVoiceOutput` + `onFinal` |
 | `Internal Server Error` на `/` | Остановить все `npm run dev`, удалить `.next`, запустить **один** dev на `:3001` |
-| ISS telemetry не видна | В v0.8 не в layout; модуль в коде — подключить `IssTelemetryModule` в `DashboardLayout` |
+| ISS telemetry не видна | Блок скрыт на узких экранах (`<768px`); расширьте окно |
 | Build + dev одновременно | Не запускать параллельно |
 | Ключи не подхватились | Перезапустить dev после правки `.env.local` |
 | Voice кнопки нет | Firefox — нет Web Speech API; используйте Chrome/Edge |
@@ -632,7 +632,7 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 
 ## Roadmap
 
-- [ ] ISS telemetry обратно в футер (модуль готов)
+- [ ] ISS telemetry на узких экранах (свёрнутый режим)
 - [ ] Readability pass: weather telemetry, calendar empty states
 - [ ] Album art в Ambient Audio (Radio Paradise)
 - [ ] Модули: radar, gremlin, notifications

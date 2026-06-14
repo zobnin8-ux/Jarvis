@@ -1,6 +1,6 @@
 import { logError, logWarn } from "@/lib/server/logger";
 
-const GEOCODE_CACHE_MS = 10 * 60 * 1000;
+const GEOCODE_CACHE_MS = 5 * 60 * 1000;
 
 interface GeocodeCacheEntry {
   label: string;
@@ -10,7 +10,7 @@ interface GeocodeCacheEntry {
 const geocodeCache = new Map<string, GeocodeCacheEntry>();
 
 function cacheKey(lat: number, lon: number): string {
-  return `${lat.toFixed(2)},${lon.toFixed(2)}`;
+  return `${lat.toFixed(1)},${lon.toFixed(1)}`;
 }
 
 export async function reverseGeocodeIss(
@@ -34,7 +34,7 @@ export async function reverseGeocodeIss(
 
     const response = await fetch(url.toString(), {
       headers: { "User-Agent": "Jarvis-Command-Center/1.0" },
-      next: { revalidate: 600 },
+      cache: "no-store",
     });
 
     if (!response.ok) {
@@ -65,8 +65,16 @@ export async function reverseGeocodeIss(
   }
 }
 
-function formatCoordFallback(lat: number, lon: number): string {
+function formatOceanFallback(lat: number, lon: number): string {
   const latH = `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? "N" : "S"}`;
   const lonH = `${Math.abs(lon).toFixed(2)}°${lon >= 0 ? "E" : "W"}`;
-  return `${latH} · ${lonH}`;
+  let region = "Pacific";
+  if (lon >= -70 && lon <= 20) region = "Atlantic";
+  else if (lon > 20 && lon <= 130) region = "Indian Ocean";
+  const hemisphere = lat >= 0 ? "North" : "South";
+  return `Over ${hemisphere} ${region} · ${latH} ${lonH}`;
+}
+
+function formatCoordFallback(lat: number, lon: number): string {
+  return formatOceanFallback(lat, lon);
 }

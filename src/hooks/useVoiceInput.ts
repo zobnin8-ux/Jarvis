@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UseVoiceInputOptions {
   lang?: string;
-  /** Fired once when recognition session ends with the final transcript. */
+  /** Fired when the user explicitly stops listening (toggle off). */
   onFinal?: (transcript: string) => void;
 }
 
@@ -56,6 +56,8 @@ export function useVoiceInput(
   const [transcript, setTranscript] = useState("");
   const latestTranscriptRef = useRef("");
   const deliveredFinalRef = useRef(false);
+  const userStoppedRef = useRef(false);
+  const wantListeningRef = useRef(false);
   const recognitionRef = useRef<RecognitionInstance | null>(null);
 
   useEffect(() => {
@@ -67,7 +69,7 @@ export function useVoiceInput(
 
     const recognition = new Ctor();
     recognition.lang = lang;
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
 
     recognition.onresult = (event) => {
@@ -81,22 +83,40 @@ export function useVoiceInput(
     };
 
     recognition.onerror = () => {
+      wantListeningRef.current = false;
+      userStoppedRef.current = false;
       setIsListening(false);
     };
 
     recognition.onend = () => {
+      if (userStoppedRef.current) {
+        setIsListening(false);
+        wantListeningRef.current = false;
+        if (deliveredFinalRef.current) return;
+        deliveredFinalRef.current = true;
+        onFinalRef.current?.(latestTranscriptRef.current.trim());
+        return;
+      }
+
+      if (wantListeningRef.current) {
+        try {
+          recognition.start();
+          setIsListening(true);
+        } catch {
+          wantListeningRef.current = false;
+          setIsListening(false);
+        }
+        return;
+      }
+
       setIsListening(false);
-      if (deliveredFinalRef.current) return;
-      const finalText = latestTranscriptRef.current.trim();
-      if (!finalText) return;
-      deliveredFinalRef.current = true;
-      onFinalRef.current?.(finalText);
     };
 
     recognitionRef.current = recognition;
     setSupported(true);
 
     return () => {
+      wantListeningRef.current = false;
       recognition.abort();
       recognitionRef.current = null;
     };
@@ -106,19 +126,33 @@ export function useVoiceInput(
     const recognition = recognitionRef.current;
     if (!recognition) return;
     deliveredFinalRef.current = false;
+    userStoppedRef.current = false;
+    wantListeningRef.current = true;
     latestTranscriptRef.current = "";
     setTranscript("");
     setIsListening(true);
     try {
       recognition.start();
     } catch {
+      wantListeningRef.current = false;
       setIsListening(false);
     }
   }, []);
 
   const stop = useCallback(() => {
-    recognitionRef.current?.stop();
-    setIsListening(false);
+    const recognition = recognitionRef.current;
+    if (!recognition || !wantListeningRef.current) return;
+    userStoppedRef.current = true;
+    wantListeningRef.current = false;
+    try {
+      recognition.stop();
+    } catch {
+      setIsListening(false);
+      if (!deliveredFinalRef.current) {
+        deliveredFinalRef.current = true;
+        onFinalRef.current?.(latestTranscriptRef.current.trim());
+      }
+    }
   }, []);
 
   return { isListening, transcript, start, stop, supported };

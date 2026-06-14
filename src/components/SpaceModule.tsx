@@ -1,39 +1,43 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { LaunchCountdown } from "@/components/LaunchCountdown";
 import { Panel } from "@/components/ui/Panel";
 import { ServiceUnavailablePanel } from "@/components/ui/ServiceUnavailablePanel";
 import { useIntervalFetch } from "@/hooks/useIntervalFetch";
 import { formatPostLaunchRemaining } from "@/lib/spaceLaunch";
+import { fetchNasaNews } from "@/services/nasaNewsService";
 import { fetchSpaceLaunch } from "@/services/spaceService";
 import type { LaunchOutcome, SpaceLaunch } from "@/types/modules";
 
-const COUNTDOWN_INTERVAL = 30 * 60 * 1000;
-const ACTIVE_LAUNCH_INTERVAL = 90 * 1000;
+const SPACE_POLL_INTERVAL = 30 * 60 * 1000;
+const NASA_POLL_INTERVAL = 60 * 60 * 1000;
 
 export function SpaceModule() {
-  const fetcher = useCallback(() => fetchSpaceLaunch(), []);
-  const [pollMs, setPollMs] = useState(COUNTDOWN_INTERVAL);
+  const launchFetcher = useCallback(() => fetchSpaceLaunch(), []);
+  const nasaFetcher = useCallback(() => fetchNasaNews(), []);
 
-  const { data: launch, loading, unavailableService } = useIntervalFetch({
-    fetcher,
-    interval: pollMs,
+  const {
+    data: launch,
+    loading: launchLoading,
+    isStale: launchStale,
+    unavailableService,
+  } = useIntervalFetch({
+    fetcher: launchFetcher,
+    interval: SPACE_POLL_INTERVAL,
     cacheKey: "jarvis-cache-v2-space",
     healthId: "space",
   });
 
-  useEffect(() => {
-    if (!launch) return;
-    setPollMs(
-      launch.phase !== "countdown"
-        ? ACTIVE_LAUNCH_INTERVAL
-        : COUNTDOWN_INTERVAL
-    );
-  }, [launch?.phase]);
+  const { data: nasaNews } = useIntervalFetch({
+    fetcher: nasaFetcher,
+    interval: NASA_POLL_INTERVAL,
+    cacheKey: "jarvis-cache-v2-nasa-news",
+  });
 
-  const isLoading = loading && !launch;
+  const isLoading = launchLoading && !launch;
+  const showLaunchUnavailable = unavailableService && !launch;
 
   return (
     <Panel className="space-panel p-5 md:p-6" delay={0.3}>
@@ -42,12 +46,17 @@ export function SpaceModule() {
         {launch && <StatusBadge launch={launch} />}
       </div>
 
-      {unavailableService ? (
+      {showLaunchUnavailable ? (
         <ServiceUnavailablePanel service={unavailableService} className="mt-4" />
       ) : isLoading ? (
         <div className="mt-4 text-sm text-white/30">Tracking launch manifest...</div>
       ) : launch ? (
         <>
+          {launchStale && (
+            <div className="mt-3 font-mono text-[0.52rem] tracking-[0.14em] text-secondary uppercase">
+              Launch feed stale
+            </div>
+          )}
           <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <Field label="Operator" value={launch.operator} />
             <Field label="Rocket" value={launch.rocket} />
@@ -72,19 +81,31 @@ export function SpaceModule() {
           {(launch.phase === "liftoff" || launch.phase === "postlaunch") && (
             <PostLaunchReport launch={launch} />
           )}
-
-          {launch.issPass && (
-            <section className="space-iss mt-5" aria-label="ISS pass">
-              <div className="label mb-2">ISS Overhead</div>
-              <p className="space-iss-text">
-                ISS over you at {launch.issPass.time}, ~{launch.issPass.durationMin}{" "}
-                min
-              </p>
-            </section>
-          )}
         </>
       ) : null}
+
+      {nasaNews && <NasaNewsSection headline={nasaNews} />}
     </Panel>
+  );
+}
+
+function NasaNewsSection({
+  headline,
+}: {
+  headline: { title: string; link: string };
+}) {
+  return (
+    <section className="space-nasa mt-5" aria-label="NASA news">
+      <div className="label mb-2">NASA</div>
+      <a
+        href={headline.link}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="space-nasa-headline"
+      >
+        {headline.title}
+      </a>
+    </section>
   );
 }
 

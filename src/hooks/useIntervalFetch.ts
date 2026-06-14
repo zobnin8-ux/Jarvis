@@ -109,6 +109,8 @@ export function useIntervalFetch<T>({
 
   const dataRef = useRef(data);
   dataRef.current = data;
+  const lastUpdatedRef = useRef(lastUpdated);
+  lastUpdatedRef.current = lastUpdated;
   const inFlightRef = useRef(false);
 
   const publishHealth = useCallback(
@@ -155,7 +157,7 @@ export function useIntervalFetch<T>({
           setIsStale(hasCachedData);
           publishHealth(
             hasCachedData ? "stale" : "offline",
-            lastUpdated,
+            lastUpdatedRef.current,
             null
           );
           setLoading(false);
@@ -177,18 +179,24 @@ export function useIntervalFetch<T>({
     setUnavailableService(null);
     publishHealth(
       hasCachedData ? "stale" : "offline",
-      lastUpdated,
+      lastUpdatedRef.current,
       lastError
     );
     setLoading(false);
     inFlightRef.current = false;
-  }, [cacheKey, lastUpdated, publishHealth]);
+  }, [cacheKey, publishHealth]);
+
+  const loadRef = useRef(load);
+  loadRef.current = load;
 
   useEffect(() => {
-    void load();
-    const timer = setInterval(load, interval);
+    const tick = () => {
+      void loadRef.current();
+    };
+    tick();
+    const timer = setInterval(tick, interval);
     return () => clearInterval(timer);
-  }, [load, interval]);
+  }, [interval]);
 
   return {
     data,
