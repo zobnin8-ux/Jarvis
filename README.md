@@ -127,7 +127,8 @@
 | | |
 |---|---|
 | **Источник** | [The Space Devs](https://thespacedevs.com/) |
-| **Refresh** | 30 мин |
+| **Refresh** | Клиент 30 мин; серверный кэш **15 мин** |
+| **Singleflight** | `/api/briefing` и `/api/space` делят **один** in-flight запрос к Spacedevs при холодном кэше |
 | **Фазы** | `countdown` → `liftoff` (~30 мин) → `postlaunch` (12 ч) → следующий манифест |
 | **Post-launch** | Mission Report: outcome, orbit, booster, payload, новость (SpaceX/NASA) |
 | **NASA** | Последний breaking news из RSS NASA |
@@ -520,6 +521,12 @@ src/
 - Автораспаковка устаревших записей формата `{ ok, data }` (миграция с ранних сборок).
 - Возвращает: `data`, `loading`, `error`, `isStale`, `lastUpdated`, `unavailableService`.
 
+### Space / Spacedevs
+
+- Сервер: `fetchCachedSpaceLaunch()` — TTL **15 мин** + **singleflight** (параллельные briefing/space не дублируют upstream).
+- При **429** от Spacedevs — отдаётся stale-кэш, если есть; иначе плашка «Космос временно недоступен».
+- Не запускайте несколько `npm run dev` и не спамьте `/api/space` вручную — лимит API жёсткий.
+
 ### `ModuleErrorBoundary`
 
 Каждый модуль обёрнут в error boundary — падение одного блока показывает «MODULE OFFLINE», остальной дашборд жив.
@@ -556,6 +563,7 @@ npm test         # Vitest (pure lib)
 | Voice кнопки нет | Firefox — нет Web Speech API; используйте Chrome/Edge |
 | Порт занят | Убедитесь, что не запущено несколько `npm run dev`; Jarvis по умолчанию на `:3001` |
 | OpenWeather key blocked | Не запускайте несколько dev-серверов; лимит Free — 60 req/min; подождите ~1 ч или смените ключ |
+| Spacedevs 429 (Космос) | Лимит API; подождите 10–30 мин; один dev; после v0.8 briefing+space не бьют API дважды на старте |
 | SSL при `git push` | Windows: временно `GIT_SSL_NO_VERIFY=1` или настроить сертификаты |
 | Calendar пустой | Расшарить календарь на service account email |
 
@@ -622,7 +630,7 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 
 | Версия | Изменения |
 |--------|-----------|
-| **v0.8** | **Insight-брифинг** (без markdown, dayPart, без дублирования панелей). **World News** (RSS RU/EN). **Утренний ритуал** (кнопка + опц. фраза будилки). Vitest + structured logging. |
+| **v0.8** | Insight-брифинг, World News, утренний ритуал, **ISS telemetry в футере**, NASA RSS в Space, **singleflight Spacedevs**, Vitest, logging |
 | **v0.7** | ISS Telemetry (код). NASA RSS в Space. Голос: toggle. Fix приветствия. Удалена карта МКС из Space. |
 | **v0.6** | Исправлен двойной TTS. Кэш модулей `jarvis-cache-v2-*`. **Fix:** бесконечный refetch в `useIntervalFetch` (убивал OpenWeather). Dev-порт **3001**. Серверный кэш погоды 10 мин. |
 | **v0.5** | AI Briefing, Voice Console, SV ticker, circadian theme, graceful degradation, ModuleHealth. |

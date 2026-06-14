@@ -12,7 +12,7 @@ status: active
 version: v0.8
 repo: https://github.com/zobnin8-ux/Jarvis
 stack: Next.js 15 · React 19 · TypeScript
-updated: 2026-06-11
+updated: 2026-06-14
 ---
 
 # Jarvis — Personal Command Center
@@ -33,6 +33,8 @@ updated: 2026-06-11
 | Брифинг (сервер) | `src/lib/server/briefingSources.ts` |
 | Ритуал (конфиг) | `src/config/morningRoutine.ts` |
 | World News (RSS) | `src/config/news.ts` |
+| Space snapshot | `src/lib/server/spaceSnapshot.ts` |
+| ISS telemetry | `src/components/IssTelemetryModule.tsx` |
 
 ---
 
@@ -47,7 +49,7 @@ updated: 2026-06-11
 ├─────────────────────────┴────────────────────────┤
 │ SV Ticker                                        │
 ├──────────────────────────────────────────────────┤
-│ Ambient Audio · Утро/Ритуал · Voice Console      │
+│ Ambient Audio · Утро/Ритуал · ISS TELEMETRY · Voice Console │
 └──────────────────────────────────────────────────┘
 ```
 
@@ -60,16 +62,13 @@ updated: 2026-06-11
 - **Weather** — OpenWeather, mood-фон, demo без ключа
 - **Briefing** — Claude + insight-слой, `dayPart`, без markdown → [[#Брифинг v0.8]]
 - **Calendar** — Google Calendar SA или demo
-- **Space** — The Space Devs, countdown / post-launch / NASA RSS
+- **Space** — The Space Devs, countdown / post-launch / NASA RSS; кэш 15 мин + **singleflight**
 - **World News** — BBC, Guardian, RIA, RBC; слайды 10 с, RU/EN
 - **Ambient Audio** — SomaFM + Radio Paradise → **Core Reactor**
+- **ISS Telemetry** — футер (md+), WTIA + geocoding + TLE
 - **Morning Ritual** — голосовая сцена → [[#Утренний ритуал]]
 - **Voice Console** — toggle + пробел, `/api/ask` + TTS
 - **SV Ticker** — demo events + Finnhub (опц.)
-
-### В коде, не в layout v0.8
-
-- **ISS Telemetry** — WTIA + geocoding + TLE; `IssTelemetryModule.tsx`, `/api/iss-telemetry`
 
 ### Зарезервированы
 
@@ -109,6 +108,14 @@ updated: 2026-06-11
 **Ограничения:** TTS отдельный `Audio`; радио не паузим; «Стоп» / скрытая вкладка прерывает.
 
 Файлы: `MorningRitual.tsx`, `useRoutineEngine.ts`, `speechRecognition.ts`, `api/ritual/route.ts`
+
+---
+
+## Космос (Spacedevs)
+
+- Клиент: опрос `/api/space` раз в **30 мин**
+- Сервер: `spaceSnapshot.ts` — кэш **15 мин**, **singleflight** (briefing + space = один запрос при холодном старте)
+- **429** — лимит The Space Devs; подождать или stale из кэша
 
 ---
 
@@ -187,7 +194,7 @@ npm test         # Vitest
 
 | Ver | Highlights |
 |-----|------------|
-| **v0.8** | Insight-брифинг, World News, утренний ритуал, Vitest, logging |
+| **v0.8** | Insight-брифинг, World News, ритуал, ISS в футере, NASA RSS, singleflight Spacedevs, Vitest |
 | v0.7 | ISS (код), NASA RSS, voice toggle, убрана карта МКС |
 | v0.6 | Fix двойного TTS, cache v2, порт 3001 |
 | v0.5 | Briefing, Voice, SV ticker, circadian |
@@ -196,7 +203,7 @@ npm test         # Vitest
 
 ## Roadmap
 
-- [ ] ISS обратно в футер
+- [ ] ISS telemetry на узких экранах (свёрнутый режим)
 - [ ] Readability: weather / calendar
 - [ ] Album art (Radio Paradise)
 - [ ] radar · gremlin · notifications
@@ -209,6 +216,7 @@ npm test         # Vitest
 - Demo-режим тихий, если ключ не задан; плашка «недоступен» — только когда ключ есть, API упал.
 - Briefing не должен падать, если упала только погода.
 - World News только `lg+`; на телефоне — только Space.
+- Spacedevs 429: один dev, не спамить API; singleflight на briefing+space.
 - Ритуал: зарядка **не** генерится Claude — только mood/closing.
 
 ---
