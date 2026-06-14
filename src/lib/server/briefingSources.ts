@@ -3,7 +3,6 @@ import type {
   SpaceLaunch,
   WeatherData,
 } from "@/types/modules";
-import type { ExternalServiceId } from "@/types/api";
 import { getWeatherDayStatus } from "@/lib/weatherMood";
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -18,7 +17,14 @@ import {
 import { aqiLabel } from "@/lib/aqi";
 import { formatSunset } from "@/lib/format";
 import { buildDailyForecast, getTodayPrecipChance } from "@/lib/weather";
-import { fetchLiveSpaceLaunch } from "@/lib/server/spaceSnapshot";
+import { fetchCachedSpaceLaunch } from "@/lib/server/spaceSnapshot";
+import { logError } from "@/lib/server/logger";
+import {
+  type DayPart,
+  getBriefingTypeLabel,
+  getDayPartGreeting,
+  getDayPartLabelRu,
+} from "@/lib/daypart";
 
 export type SourceResult<T> =
   | { kind: "demo"; data: T }
@@ -124,6 +130,7 @@ async function fetchLiveWeather(): Promise<WeatherData> {
     );
 
   const timezone = forecast.city?.timezone ?? current.timezone ?? 0;
+  lastWeatherUtcOffsetSec = timezone;
   const daily = buildDailyForecast(forecast.list, timezone, 3);
   const today = daily.find((d) => d.day === "Today") ?? daily[0];
 
@@ -154,15 +161,33 @@ async function fetchLiveWeather(): Promise<WeatherData> {
   };
 }
 
+const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
+let weatherCache: { data: WeatherData; expiresAt: number } | null = null;
+let lastWeatherUtcOffsetSec: number | undefined;
+
+export function getWeatherUtcOffsetSec(): number | undefined {
+  return lastWeatherUtcOffsetSec;
+}
+
 export async function resolveWeatherSnapshot(): Promise<SourceResult<WeatherData>> {
   if (!process.env.OPENWEATHER_API_KEY) {
     return { kind: "demo", data: DEMO_WEATHER };
   }
 
+  const now = Date.now();
+  if (weatherCache && weatherCache.expiresAt > now) {
+    return { kind: "live", data: weatherCache.data };
+  }
+
   try {
     const data = await fetchLiveWeather();
+    weatherCache = { data, expiresAt: now + WEATHER_CACHE_TTL_MS };
     return { kind: "live", data };
-  } catch {
+  } catch (err) {
+    logError("briefing.weather", err);
+    if (weatherCache) {
+      return { kind: "live", data: weatherCache.data };
+    }
     return { kind: "unavailable" };
   }
 }
@@ -284,7 +309,8 @@ export async function resolveCalendarSnapshot(): Promise<SourceResult<CalendarDa
   try {
     const data = await fetchLiveCalendar();
     return { kind: "live", data };
-  } catch {
+  } catch (err) {
+    logError("briefing.calendar", err);
     return { kind: "unavailable" };
   }
 }
@@ -297,9 +323,10 @@ export async function gatherCalendarSnapshot(): Promise<CalendarData> {
 
 export async function resolveSpaceSnapshot(): Promise<SourceResult<SpaceLaunch>> {
   try {
-    const data = await fetchLiveSpaceLaunch();
+    const data = await fetchCachedSpaceLaunch();
     return { kind: "live", data };
-  } catch {
+  } catch (err) {
+    logError("briefing.space", err);
     return { kind: "unavailable" };
   }
 }
@@ -312,24 +339,26 @@ export async function gatherSpaceSnapshot(): Promise<SpaceLaunch> {
   return result.data;
 }
 
-export function buildDemoBriefing(
-  weather: WeatherData,
-  calendar: CalendarData,
-  space: SpaceLaunch,
-  userName: string
-): string {
-  const city = process.env.NEXT_PUBLIC_WEATHER_CITY ?? "San Jose";
-  const status = getWeatherDayStatus(weather);
-  const next =
-    calendar.nextEvent != null
-      ? `Next up at ${calendar.nextEvent.time}: ${calendar.nextEvent.title}.`
-      : "Your schedule is clear for now.";
-  const launch =
-    space.phase === "countdown"
-      ? `${space.operator} ${space.mission} launches ${space.countdown.replace("T-", "in ")}.`
-      : `${space.mission} is in ${space.phase} phase.`;
+const DEMO_SPACE: SpaceLaunch = {
+  launchId: "demo",
+  operator: "Space",
+  rocket: "—",
+  mission: "Orbital feed offline",
+  padName: "—",
+  latitude: 0,
+  longitude: 0,
+  countdown: "T-—",
+  status: "TBD",
+  launchTime: new Date().toISOString(),
+  phase: "countdown",
+  outcome: "PENDING",
+  detailLines: [],
+};
 
-  return `${userName}, ${city} reads ${status.toLowerCase()} at ${weather.temperature}°. ${next} ${launch}`;
+export interface BriefingSourceAvailability {
+  weatherAvailable: boolean;
+  calendarAvailable: boolean;
+  spaceAvailable: boolean;
 }
 
 export interface BriefingSources {
@@ -338,38 +367,204 @@ export interface BriefingSources {
   space: SpaceLaunch;
 }
 
-export type BriefingSourcesResult =
-  | { ok: true; sources: BriefingSources }
-  | { ok: false; service: ExternalServiceId };
+export interface BriefingSourcesBundle {
+  sources: BriefingSources;
+  availability: BriefingSourceAvailability;
+  weatherUtcOffsetSec?: number;
+}
 
-function sourceData<T>(result: SourceResult<T>): T | null {
-  if (result.kind === "unavailable") return null;
+function weatherSentence(
+  weather: WeatherData,
+  availability: BriefingSourceAvailability
+): string | null {
+  if (!availability.weatherAvailable) {
+    return "Данные о погоде временно недоступны.";
+  }
+  const city = process.env.NEXT_PUBLIC_WEATHER_CITY ?? "San Jose";
+  const status = getWeatherDayStatus(weather);
+  return `В ${city} ${status.toLowerCase()}, ${weather.temperature}°C, ${weather.description.toLowerCase()}.`;
+}
+
+function calendarSentence(
+  calendar: CalendarData,
+  availability: BriefingSourceAvailability
+): string | null {
+  if (!availability.calendarAvailable) {
+    return "Календарь временно недоступен.";
+  }
+  if (calendar.nextEvent) {
+    return `Ближайшее — «${calendar.nextEvent.title}» в ${calendar.nextEvent.time}.`;
+  }
+  return "Ближайших встреч в календаре нет.";
+}
+
+function spaceSentence(
+  space: SpaceLaunch,
+  availability: BriefingSourceAvailability
+): string | null {
+  if (!availability.spaceAvailable) {
+    return "Данные о запусках временно недоступны.";
+  }
+  if (space.phase === "countdown") {
+    return `${space.operator}, ${space.mission}: ${space.countdown.replace("T-", "через ")}.`;
+  }
+  return `${space.mission} — фаза ${space.phase}.`;
+}
+
+export function buildDemoBriefing(
+  weather: WeatherData,
+  calendar: CalendarData,
+  space: SpaceLaunch,
+  userName: string,
+  availability: BriefingSourceAvailability,
+  dayPart: DayPart
+): string {
+  const parts: string[] = [getDayPartGreeting(userName, dayPart)];
+
+  if (availability.calendarAvailable && calendar.nextEvent) {
+    parts.push(
+      `Главное сейчас — «${calendar.nextEvent.title}» в ${calendar.nextEvent.time}.`
+    );
+  } else if (availability.spaceAvailable && space.phase === "countdown") {
+    parts.push(`На орбите внимание: ${space.operator}, ${space.mission}.`);
+  } else if (availability.weatherAvailable) {
+    parts.push(weatherSentence(weather, availability)!);
+  }
+
+  const secondary: string[] = [];
+  const weatherLine = weatherSentence(weather, availability);
+  const calendarLine = calendarSentence(calendar, availability);
+  const spaceLine = spaceSentence(space, availability);
+
+  if (weatherLine && !parts.some((p) => p.includes(weatherLine.slice(0, 12)))) {
+    secondary.push(weatherLine);
+  }
+  if (calendarLine && !parts.some((p) => p.includes("Главное"))) {
+    secondary.push(calendarLine);
+  }
+  if (spaceLine && !parts.some((p) => p.includes("орбит"))) {
+    secondary.push(spaceLine);
+  }
+
+  if (secondary.length > 0) {
+    parts.push(secondary[0]);
+  }
+
+  return parts.slice(0, 3).join(" ");
+}
+
+export function buildBriefingPromptLines(
+  sources: BriefingSources,
+  availability: BriefingSourceAvailability
+): string[] {
+  const { weather, calendar, space } = sources;
+  const lines: string[] = [];
+
+  if (availability.weatherAvailable) {
+    lines.push(
+      `Погода: ${weather.temperature}°C, ${weather.description}, осадки ${weather.precipChance}%.`
+    );
+  } else {
+    lines.push(
+      "Погода: данные временно недоступны — не выдумывай температуру и условия."
+    );
+  }
+
+  if (availability.calendarAvailable) {
+    lines.push(
+      `Ближайшее событие: ${calendar.nextEvent ? `${calendar.nextEvent.time} ${calendar.nextEvent.title}` : "нет"}.`
+    );
+  } else {
+    lines.push("Календарь: данные временно недоступны — не выдумывай встречи.");
+  }
+
+  if (availability.spaceAvailable) {
+    lines.push(
+      `Космос: ${space.operator} ${space.mission}, фаза ${space.phase}, отсчёт ${space.countdown}.`
+    );
+  } else {
+    lines.push(
+      "Космос: данные о запусках недоступны — не выдумывай пуски."
+    );
+  }
+
+  return lines;
+}
+
+export function buildClaudeBriefingPrompt(
+  userName: string,
+  dayPart: DayPart,
+  sources: BriefingSources,
+  availability: BriefingSourceAvailability
+): string {
+  return [
+    `Ты — Jarvis, лаконичный личный ассистент ${userName}. Сейчас ${getDayPartLabelRu(dayPart)}.`,
+    `Составь ${getBriefingTypeLabel(dayPart)} сводку на РУССКОМ в 2–3 предложения.`,
+    "Тон: спокойный, по делу, без воды.",
+    "Выдели одну главную вещь на сейчас (ближайшая встреча / пуск / погода на выход), а не просто перечисляй.",
+    "Используй только данные доступных источников; если источник недоступен — скажи об этом честно.",
+    "Ответ строго на русском языке.",
+    "",
+    ...buildBriefingPromptLines(sources, availability),
+  ].join("\n");
+}
+
+export function buildAskContextLines(
+  sources: BriefingSources,
+  availability: BriefingSourceAvailability
+): string[] {
+  const { weather, calendar, space } = sources;
+  const lines: string[] = [];
+
+  if (availability.weatherAvailable) {
+    lines.push(`Погода: ${weather.temperature}°C, ${weather.description}.`);
+  } else {
+    lines.push("Погода: данные временно недоступны.");
+  }
+
+  if (availability.calendarAvailable) {
+    lines.push(
+      calendar.nextEvent
+        ? `Ближайшее событие: ${calendar.nextEvent.time} ${calendar.nextEvent.title}.`
+        : "Календарь: ближайших событий нет."
+    );
+  } else {
+    lines.push("Календарь: данные временно недоступны.");
+  }
+
+  if (availability.spaceAvailable) {
+    lines.push(`Космос: ${space.operator} ${space.mission}, ${space.countdown}.`);
+  } else {
+    lines.push("Космос: данные о запусках временно недоступны.");
+  }
+
+  return lines;
+}
+
+function pickSourceData<T>(result: SourceResult<T>, fallback: T): T {
+  if (result.kind === "unavailable") return fallback;
   return result.data;
 }
 
-export async function gatherBriefingSources(): Promise<BriefingSourcesResult> {
+export async function gatherBriefingSources(): Promise<BriefingSourcesBundle> {
   const [weatherResult, calendarResult, spaceResult] = await Promise.all([
     resolveWeatherSnapshot(),
     resolveCalendarSnapshot(),
     resolveSpaceSnapshot(),
   ]);
 
-  if (weatherResult.kind === "unavailable") {
-    return { ok: false, service: "openweather" };
-  }
-  if (calendarResult.kind === "unavailable") {
-    return { ok: false, service: "google-calendar" };
-  }
-  if (spaceResult.kind === "unavailable") {
-    return { ok: false, service: "spacedevs" };
-  }
-
-  const weather = sourceData(weatherResult);
-  const calendar = sourceData(calendarResult);
-  const space = sourceData(spaceResult);
-  if (!weather || !calendar || !space) {
-    return { ok: false, service: "spacedevs" };
-  }
-
-  return { ok: true, sources: { weather, calendar, space } };
+  return {
+    sources: {
+      weather: pickSourceData(weatherResult, DEMO_WEATHER),
+      calendar: pickSourceData(calendarResult, buildDemoCalendarSnapshot()),
+      space: pickSourceData(spaceResult, DEMO_SPACE),
+    },
+    availability: {
+      weatherAvailable: weatherResult.kind !== "unavailable",
+      calendarAvailable: calendarResult.kind !== "unavailable",
+      spaceAvailable: spaceResult.kind !== "unavailable",
+    },
+    weatherUtcOffsetSec:
+      weatherResult.kind === "live" ? getWeatherUtcOffsetSec() : undefined,
+  };
 }
