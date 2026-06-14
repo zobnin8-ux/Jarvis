@@ -18,7 +18,6 @@ import { useNightMode } from "@/context/NightModeContext";
 import { NightModeToggle } from "@/components/NightModeToggle";
 import { useMounted } from "@/hooks/useMounted";
 import { VoiceConsole } from "@/components/VoiceConsole";
-import { MorningRitual } from "@/components/MorningRitual";
 import { IssTelemetryModule } from "@/components/IssTelemetryModule";
 import { WorldNewsModule } from "@/components/WorldNewsModule";
 
@@ -112,16 +111,13 @@ export function DashboardLayout({ futureSlot }: DashboardLayoutProps) {
           <SiliconValleyModule />
         </ModuleErrorBoundary>
         <div className="footer-controls flex items-end justify-between gap-3 md:gap-4">
-          <div className="flex min-w-0 flex-col gap-2">
-            <div className="footer-audio-row flex min-w-0 flex-wrap items-start gap-2">
+          <div className="footer-controls-left">
+            <div className="footer-audio-row">
               <AmbientAudioModule />
               <ModuleErrorBoundary name="Audiobooks">
                 <AudiobookPlayer />
               </ModuleErrorBoundary>
             </div>
-            <ModuleErrorBoundary name="Morning Ritual">
-              <MorningRitual />
-            </ModuleErrorBoundary>
           </div>
           <div className="footer-telemetry hidden min-w-0 flex-1 md:flex md:justify-center">
             <ModuleErrorBoundary name="ISS Telemetry">

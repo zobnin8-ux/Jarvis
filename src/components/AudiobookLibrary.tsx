@@ -1,7 +1,7 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect } from "react";
+import { AnimatePresence, motion, useDragControls } from "framer-motion";
+import { useCallback, useEffect, useState } from "react";
 import { useAudiobooks } from "@/context/AudiobooksContext";
 import { formatAudiobookDuration } from "@/lib/audiobooksPlayer";
 import type { AudiobookData, AudiobookItem } from "@/types/modules";
@@ -19,7 +19,15 @@ export function AudiobookLibrary({
   data,
   loading,
 }: AudiobookLibraryProps) {
+  const dragControls = useDragControls();
+  const [panelKey, setPanelKey] = useState(0);
   const { current, play, setPlaylist } = useAudiobooks();
+
+  useEffect(() => {
+    if (open) {
+      setPanelKey((k) => k + 1);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (data?.items.length) {
@@ -58,16 +66,26 @@ export function AudiobookLibrary({
             onClick={onClose}
           />
           <motion.div
+            key={panelKey}
             className="audiobook-library"
             role="dialog"
             aria-modal="true"
             aria-label="Библиотека аудиокниг"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 16 }}
-            transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+            drag
+            dragControls={dragControls}
+            dragListener={false}
+            dragMomentum={false}
+            dragElastic={0}
+            initial={{ opacity: 0, x: "-50%", y: "-48%", scale: 0.98 }}
+            animate={{ opacity: 1, x: "-50%", y: "-50%", scale: 1 }}
+            exit={{ opacity: 0, x: "-50%", y: "-48%", scale: 0.98 }}
+            transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="audiobook-library-head">
+            <div
+              className="audiobook-library-head audiobook-library-drag-handle"
+              onPointerDown={(e) => dragControls.start(e)}
+            >
               <div>
                 <div className="label">Audiobooks</div>
                 <div className="audiobook-library-channel">

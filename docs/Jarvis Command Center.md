@@ -12,12 +12,12 @@ status: active
 version: v0.8
 repo: https://github.com/zobnin8-ux/Jarvis
 stack: Next.js 15 · React 19 · TypeScript
-updated: 2026-06-14
+updated: 2026-06-15
 ---
 
 # Jarvis — Personal Command Center
 
-> Личный HUD-дашборд: погода, календарь, космос, AI-брифинг, World News, радио с Core Reactor, голос, утренний ритуал и **ночной режим (День/Ночь)**.  
+> Личный HUD-дашборд: погода, календарь, космос, AI-брифинг, World News, радио, Audiobooks, голос и **ночной режим (День/Ночь)**.  
 > Браузер **Chrome / Edge**, порт dev **3001**.
 
 ---
@@ -31,7 +31,7 @@ updated: 2026-06-14
 | Env-шаблон | `.env.example` |
 | Реестр модулей | `src/lib/moduleRegistry.ts` |
 | Брифинг (сервер) | `src/lib/server/briefingSources.ts` |
-| Ритуал (конфиг) | `src/config/morningRoutine.ts` |
+| Audiobooks | `AudiobooksContext.tsx`, `/api/audiobooks` |
 | World News (RSS) | `src/config/news.ts` |
 | Space snapshot | `src/lib/server/spaceSnapshot.ts` |
 | ISS telemetry | `src/components/IssTelemetryModule.tsx` |
@@ -50,7 +50,7 @@ updated: 2026-06-14
 ├─────────────────────────┴────────────────────────┤
 │ SV Ticker                                        │
 ├──────────────────────────────────────────────────┤
-│ Ambient Audio · Утро/Ритуал · ISS TELEMETRY · Voice Console │
+│ Ambient Audio · Audiobooks · ISS TELEMETRY · Voice Console │
 └──────────────────────────────────────────────────┘
 ```
 
@@ -67,7 +67,7 @@ updated: 2026-06-14
 - **World News** — BBC, Guardian, RIA, RBC; слайды 10 с, RU/EN
 - **Ambient Audio** — SomaFM + Radio Paradise → **Core Reactor**
 - **ISS Telemetry** — футер (md+), WTIA + geocoding + TLE
-- **Morning Ritual** — голосовая сцена → [[#Утренний ритуал]]
+- **Audiobooks** — YouTube «Голос Коваленко», футер **справа** от радио (та же высота); библиотека **draggable**, ~828×736 px
 - **Voice Console** — toggle + пробел, `/api/ask` + TTS
 - **SV Ticker** — demo events + Finnhub (опц.)
 - **Night Mode** — тумблер в шапке → [[#Ночной режим]]
@@ -92,24 +92,6 @@ updated: 2026-06-14
 | TZ | `BRIEFING_TZ` или offset OpenWeather |
 
 Файлы: `briefingContext.ts`, `stripMarkdown.ts`, `daypart.ts`, `briefing/route.ts`, `ask/route.ts`
-
----
-
-## Утренний ритуал
-
-**Запуск:** кнопка «Утро / Ритуал» · тумблер «Слушать» (`привет джарвис`, по умолчанию **выкл.**)
-
-**Сценарий:**
-
-1. Приветствие по `dayPart`
-2. «Как настроение?» → `/api/ritual` mood
-3. «Сделаем короткую зарядку?» → `MORNING_EXERCISE` (фикс. скрипт + фраза безопасности)
-4. «Включить музыку?» → `play()` только по «да»
-5. `/api/ritual` closing
-
-**Ограничения:** TTS отдельный `Audio`; радио не паузим; «Стоп» / скрытая вкладка прерывает.
-
-Файлы: `MorningRitual.tsx`, `useRoutineEngine.ts`, `speechRecognition.ts`, `api/ritual/route.ts`
 
 ---
 
@@ -147,14 +129,16 @@ flowchart LR
     A[audio element] --> B[AnalyserNode]
     B --> C[HUD rings / equalizer]
   end
-  subgraph voice [Voice / Ritual]
-    D[SpeechRecognition] --> E[/api/ask or ritual/]
+  subgraph voice [Voice Console]
+    D[SpeechRecognition] --> E[/api/ask/]
     E --> F[/api/tts ElevenLabs]
     F --> G[new Audio — отдельно]
   end
 ```
 
 **Не трогать без необходимости:** `coreReactorEngine.ts`, `audioAnalysis.ts`, `CoreResonanceContext` (radio), `CentralHudRings.tsx`, `useCoreResonanceVisuals.ts`
+
+**Audiobooks + Voice + Radio** — три независимых аудио-канала; радио не паузится при книге.
 
 ---
 
@@ -169,8 +153,8 @@ flowchart LR
 | `/api/space` | Пуск |
 | `/api/briefing` | AI-сводка |
 | `/api/world-news` | RSS headlines |
+| `/api/audiobooks` | YouTube полка |
 | `/api/ask` | POST голосовой вопрос |
-| `/api/ritual` | POST mood / closing |
 | `/api/tts` | POST озвучка |
 | `/api/iss-telemetry` | МКС (если включён модуль) |
 
@@ -184,7 +168,9 @@ flowchart LR
 OPENWEATHER_API_KEY=
 ANTHROPIC_API_KEY=
 ELEVENLABS_API_KEY=
-ELEVENLABS_VOICE_ID=
+ELEVENLABS_VOICE_ID=        # после смены — перезапуск npm run dev
+YOUTUBE_API_KEY=
+YOUTUBE_CHANNEL_ID=UCY-ekT04DX2bQhzYvm2y5Lw
 NEXT_PUBLIC_USER_NAME=Andrei
 GOOGLE_CALENDAR_ID=
 GOOGLE_SERVICE_ACCOUNT_JSON_PATH=
@@ -214,7 +200,7 @@ npm test         # Vitest
 
 | Ver | Highlights |
 |-----|------------|
-| **v0.8** | Insight-брифинг, World News, ритуал, **ночной режим**, ISS в футере, NASA RSS, singleflight Spacedevs, Vitest |
+| **v0.8** | Briefing, World News, Audiobooks, deep night mode, ISS, NASA RSS, singleflight; **ритуал удалён** |
 | v0.7 | ISS (код), NASA RSS, voice toggle, убрана карта МКС |
 | v0.6 | Fix двойного TTS, cache v2, порт 3001 |
 | v0.5 | Briefing, Voice, SV ticker, circadian |
@@ -227,7 +213,6 @@ npm test         # Vitest
 - [ ] Readability: weather / calendar
 - [ ] Album art (Radio Paradise)
 - [ ] radar · gremlin · notifications
-- [ ] Вечерний ритуал
 
 ---
 
@@ -238,7 +223,7 @@ npm test         # Vitest
 - World News только `lg+`; на телефоне — только Space.
 - Spacedevs 429: один dev, не спамить API; singleflight на briefing+space.
 - Ночь: тумблер в шапке — **нулевой API**, статичный HUD; радио при включении — полный реактор.
-- Ритуал: зарядка **не** генерится Claude — только mood/closing.
+- Audiobooks: отдельный YT IFrame; радио не трогаем.
 
 ---
 

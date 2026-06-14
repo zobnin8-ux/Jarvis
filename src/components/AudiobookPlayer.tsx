@@ -46,13 +46,11 @@ export function AudiobookPlayer() {
   }, [data, setPlaylist]);
 
   const title = getNowPlayingTitle();
-
-  const showResume =
-    !current && pendingResume && !unavailableService;
+  const showResume = !current && pendingResume && !unavailableService;
 
   if (unavailableService) {
     return (
-      <div className="audiobook-player">
+      <div className="audiobook-player footer-audio-unit">
         <ServiceUnavailablePanel service={unavailableService} />
       </div>
     );
@@ -60,7 +58,7 @@ export function AudiobookPlayer() {
 
   return (
     <>
-      <div className="audiobook-player">
+      <div className="audiobook-player footer-audio-unit">
         <div className="audiobook-player-header">
           <div className="label">Audiobooks</div>
           <div className="audiobook-player-controls">
@@ -94,19 +92,21 @@ export function AudiobookPlayer() {
         </div>
 
         {current || title ? (
-          <div className="audiobook-player-now" title={title}>
-            сейчас: {title || "—"}
+          <div className="audiobook-player-title" title={title}>
+            {title || "—"}
           </div>
         ) : showResume ? (
           <button
             type="button"
-            className="audiobook-player-resume"
+            className="audiobook-player-title audiobook-player-resume"
             onClick={resumeLast}
           >
             продолжить: {pendingResume!.title}
           </button>
         ) : (
-          <div className="audiobook-player-invite">Откройте библиотеку</div>
+          <div className="audiobook-player-title audiobook-player-invite">
+            Выберите книгу
+          </div>
         )}
 
         <div className="audiobook-player-status">

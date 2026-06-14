@@ -6,7 +6,7 @@
 **Репозиторий:** [github.com/zobnin8-ux/Jarvis](https://github.com/zobnin8-ux/Jarvis)  
 **Obsidian:** [docs/Jarvis Command Center.md](docs/Jarvis%20Command%20Center.md) — краткая заметка для vault  
 **Стек:** Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · Framer Motion  
-**Версия UI:** v0.8 — insight-брифинг, World News, утренний ритуал, **ночной режим (День/Ночь)**, ISS telemetry, голос (toggle), SV-тикер, циркадная тема, graceful degradation
+**Версия UI:** v0.8 — insight-брифинг, World News, Audiobooks, **ночной режим (День/Ночь)**, ISS telemetry, голос (toggle), SV-тикер, циркадная тема, graceful degradation
 
 ---
 
@@ -48,7 +48,7 @@
 ├────────────────────────────────────────────────────────────────┤
 │  SV TICKER — tech-события + котировки (бегущая строка)         │
 ├────────────────────────────────────────────────────────────────┤
-│  Ambient Audio + Утро/Ритуал  ·  ISS TELEMETRY  ·  Voice Console ◯      │
+│  Ambient Audio · Audiobooks  ·  ISS TELEMETRY  ·  Voice Console ◯           │
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -103,19 +103,6 @@
 | **UI** | Заголовок по центру блока, line-clamp 3, ссылка в новую вкладку |
 | **Файлы** | `WorldNewsModule.tsx`, `worldNews.ts`, `/api/world-news` |
 
-### Morning Ritual (утренний ритуал)
-
-| | |
-|---|---|
-| **Расположение** | Футер, под Ambient Audio |
-| **Запуск** | Кнопка **«Утро / Ритуал»** (всегда) + опционально тумблер «Слушать» (фраза `привет джарвис`, **выкл.** по умолчанию) |
-| **Сценарий** | Приветствие → настроение → Claude-реакция → зарядка? (фикс. скрипт) → музыка? (`play()` только по «да») → мотивация |
-| **TTS** | Отдельный `Audio`, не радио / не реактор |
-| **Стоп** | Кнопка или «стоп/хватит»; прерывание при скрытой вкладке |
-| **Файлы** | `MorningRitual.tsx`, `useRoutineEngine.ts`, `morningRoutine.ts`, `/api/ritual` |
-
-Радио **не** ставится на паузу ассистентом — только пользователь или явное «да» на включение.
-
 ### Calendar
 
 | | |
@@ -140,7 +127,7 @@
 
 | | |
 |---|---|
-| **Расположение** | Центр футера между Ambient Audio / Ритуал и Voice Console (экраны **md+**) |
+| **Расположение** | Центр футера между Ambient Audio / Audiobooks и Voice Console (экраны **md+**) |
 | **Источник** | [Where The ISS At](https://wheretheiss.at/) — позиция, скорость, SUNLIT/ECLIPSE |
 | **Геокодинг** | Open-Meteo reverse geocoding → «город, регион, страна» |
 | **Орбита** | TLE Celestrak + `satellite.js` — номер витка за сутки, % текущего витка |
@@ -167,6 +154,19 @@
 | **Метаданные** | `/api/radio/metadata` — track / artist |
 | **Связь с ядром** | `<audio>` + Web Audio AnalyserNode → Core Reactor |
 
+### Audiobooks (YouTube)
+
+| | |
+|---|---|
+| **Канал** | «Голос Коваленко — аудиокниги», `UCY-ekT04DX2bQhzYvm2y5Lw` |
+| **Расположение** | Футер, **справа** от Ambient Audio (одинаковая высота блоков) |
+| **Плеер** | YouTube IFrame API, скрытый контейнер; звук **не** в реактор |
+| **Библиотека** | Оверлей по кнопке «Библиотека» (~828×736 px), **перетаскивается** за шапку |
+| **Resume** | `localStorage` `jarvis-audiobook-progress` |
+| **Радио** | Не затрагивается |
+| **Env** | `YOUTUBE_API_KEY`, `YOUTUBE_CHANNEL_ID` |
+| **Файлы** | `AudiobookPlayer.tsx`, `AudiobooksContext.tsx`, `/api/audiobooks` |
+
 ### Voice Console (голос)
 
 | | |
@@ -177,6 +177,7 @@
 | **Фолбэк** | Только если ElevenLabs недоступен — `SpeechSynthesis` (системный голос) |
 | **Управление** | Кнопка ◯ справа в футере: **пробел — начать · пробел — отправить** |
 | **Браузер** | Chrome / Edge; Firefox — кнопка скрыта (`supported: false`) |
+| **Env** | `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` — после смены голоса **перезапустите** `npm run dev` |
 
 **Важно:** TTS **не** подключён к радио и **не** идёт в AnalyserNode / Core Reactor. Радио и голос — независимые аудио-каналы.
 
@@ -267,7 +268,7 @@ F11 — полноэкранный режим браузера.
 
 | Переменная | Обязательно | Описание |
 |------------|-------------|----------|
-| `ANTHROPIC_API_KEY` | нет* | Claude — брифинг + голосовые ответы + ритуал |
+| `ANTHROPIC_API_KEY` | нет* | Claude — брифинг + голосовые ответы |
 | `ANTHROPIC_MODEL` | нет | Default: `claude-sonnet-4-6` |
 | `BRIEFING_TZ` | нет | IANA timezone для `dayPart` (напр. `America/Los_Angeles`) |
 
@@ -286,6 +287,15 @@ F11 — полноэкранный режим браузера.
 |------------|-------------|----------|
 | `FINNHUB_API_KEY` | нет | [Finnhub](https://finnhub.io) — живые котировки; без ключа — demo |
 
+### Серверные — Audiobooks (YouTube)
+
+| Переменная | Обязательно | Описание |
+|------------|-------------|----------|
+| `YOUTUBE_API_KEY` | нет* | YouTube Data API v3 |
+| `YOUTUBE_CHANNEL_ID` | нет | Default: `UCY-ekT04DX2bQhzYvm2y5Lw` (Голос Коваленко) |
+
+\* Без ключа — demo-полка без живого воспроизведения.
+
 ### Пример `.env.local`
 
 ```env
@@ -302,6 +312,9 @@ NEXT_PUBLIC_USER_NAME=Andrei
 ANTHROPIC_API_KEY=sk-ant-...
 ELEVENLABS_API_KEY=sk_...
 ELEVENLABS_VOICE_ID=...
+
+YOUTUBE_API_KEY=...
+YOUTUBE_CHANNEL_ID=UCY-ekT04DX2bQhzYvm2y5Lw
 
 FINNHUB_API_KEY=...
 ```
@@ -322,6 +335,13 @@ FINNHUB_API_KEY=...
 1. [elevenlabs.io](https://elevenlabs.io) → войти в аккаунт с подпиской.
 2. **API Key:** Profile → API Keys → Create.
 3. **Voice ID:** Voices → ваш клон → Settings → скопировать Voice ID.
+
+После смены `ELEVENLABS_VOICE_ID` в `.env.local` перезапустите dev-сервер.
+
+### YouTube (Audiobooks)
+1. [console.cloud.google.com](https://console.cloud.google.com/) → Enable **YouTube Data API v3**.
+2. Credentials → Create API key → `YOUTUBE_API_KEY`.
+3. Канал по умолчанию уже в `.env.example`; свой — укажите `YOUTUBE_CHANNEL_ID`.
 
 ### Finnhub (акции в SV-тикере)
 1. [finnhub.io](https://finnhub.io) → Get free API key.
@@ -444,7 +464,7 @@ onFinal (один раз) → /api/ask → speak(text)
 | GET | `/api/sv-events` | `SvEventsData` (тикер) |
 | GET | `/api/radio/metadata?station=...` | Метаданные трека |
 | POST | `/api/ask` | `{ query }` → `{ text }` |
-| POST | `/api/ritual` | `{ phase: "mood" \| "closing", mood? }` → `{ text }` |
+| GET | `/api/audiobooks` | `AudiobookData` (YouTube uploads) |
 | POST | `/api/tts` | `{ text }` → `audio/mpeg` или `{ ok: false }` |
 
 Типы данных: `src/types/modules.ts`.  
@@ -465,7 +485,7 @@ src/
 │   │   ├── world-news/
 │   │   ├── iss-telemetry/
 │   │   ├── briefing/
-│   │   ├── ritual/
+│   │   ├── audiobooks/
 │   │   ├── sv-events/
 │   │   ├── ask/
 │   │   ├── tts/
@@ -473,24 +493,23 @@ src/
 │   ├── globals.css       # HUD-тема, mood, circadian overrides
 │   ├── layout.tsx
 │   └── page.tsx
-├── components/           # UI-модули + WorldNews + MorningRitual + VoiceConsole
+├── components/           # UI-модули + WorldNews + Audiobooks + VoiceConsole
 ├── config/
 │   ├── theme.ts          # Темы + circadian palette
 │   ├── nightMode.ts      # Ночные интервалы опроса
 │   ├── news.ts           # RSS feeds World News
-│   ├── morningRoutine.ts # Фраза будилки + шаги зарядки
 │   ├── radio.ts          # ⚠️ не трогать без необходимости
 │   └── coreReactor.ts    # ⚠️ не трогать
 ├── context/
 │   ├── CoreResonanceContext.tsx   # Радио + AnalyserNode
 │   ├── ModuleHealthContext.tsx    # Heartbeat для System Status
 │   └── NightModeContext.tsx       # День/Ночь + localStorage
+│   └── AudiobooksContext.tsx      # YouTube IFrame (отдельно от радио)
 ├── hooks/
 │   ├── useIntervalFetch.ts        # Retry, cache, stale, unavailable, paused
 │   ├── useAdaptivePoll.ts         # Ночные интервалы + пауза при hidden tab
 │   ├── useCoreResonanceVisuals.ts # ⚠️ не трогать
 │   ├── useVoiceInput.ts / useVoiceOutput.ts
-│   ├── useRoutineEngine.ts        # Утренний ритуал
 │   └── useSystemStatus.ts
 ├── layout/
 │   └── DashboardLayout.tsx
@@ -519,6 +538,7 @@ src/
 | space | ✅ active | 30 min / 90 s |
 | world-news | ✅ active | 10 min |
 | ambient-audio | ✅ active | — |
+| audiobooks | ✅ active | 30 min |
 | ai-briefing | ✅ active | 1 h |
 | silicon-valley | ✅ active | 5 min |
 | radar | 🔒 reserved | — |
@@ -654,7 +674,7 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 ## Известные ограничения
 
 - World News — только на экранах **lg+** (рядом с Space).
-- Утренний ритуал и Voice — Chrome / Edge (Web Speech API).
+- Voice Console — Chrome / Edge (Web Speech API).
 - UI погоды в развёрнутой телеметрии — мелковат (запланирован readability pass).
 - Radio Paradise album art в API есть, в UI пока не показан.
 - Post-launch report держится **12 часов**, затем переключается на **следующий** ближайший пуск из API (не «ваш» Starlink навсегда).
@@ -667,7 +687,7 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 
 | Версия | Изменения |
 |--------|-----------|
-| **v0.8** | Insight-брифинг, World News, утренний ритуал, **ночной режим (День/Ночь)**, ISS telemetry в футере, NASA RSS в Space, **singleflight Spacedevs**, Vitest, logging |
+| **v0.8** | Insight-брифинг, World News, **Audiobooks** (YouTube), **глубокий ночной режим**, ISS в футере, NASA RSS, singleflight Spacedevs; **удалён утренний ритуал** |
 | **v0.7** | ISS Telemetry (код). NASA RSS в Space. Голос: toggle. Fix приветствия. Удалена карта МКС из Space. |
 | **v0.6** | Исправлен двойной TTS. Кэш модулей `jarvis-cache-v2-*`. **Fix:** бесконечный refetch в `useIntervalFetch` (убивал OpenWeather). Dev-порт **3001**. Серверный кэш погоды 10 мин. |
 | **v0.5** | AI Briefing, Voice Console, SV ticker, circadian theme, graceful degradation, ModuleHealth. |
@@ -681,7 +701,6 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 - [ ] Readability pass: weather telemetry, calendar empty states
 - [ ] Album art в Ambient Audio (Radio Paradise)
 - [ ] Модули: radar, gremlin, notifications
-- [ ] Расширение ритуала (вечерний сценарий)
 
 ---
 

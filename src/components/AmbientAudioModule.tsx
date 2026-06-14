@@ -7,7 +7,7 @@ export function AmbientAudioModule() {
     useRadioPlayer();
 
   return (
-    <div className="ambient-audio">
+    <div className="ambient-audio footer-audio-unit">
       <div className="ambient-audio-header">
         <div className="label">Ambient Audio</div>
         <button
