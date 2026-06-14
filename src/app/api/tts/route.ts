@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiUnavailable } from "@/lib/server/apiResponse";
+import { logError, logWarn } from "@/lib/server/logger";
 
 const ELEVEN_STABILITY = 0.45;
 const ELEVEN_SIMILARITY = 0.78;
@@ -15,7 +16,8 @@ export async function POST(request: Request) {
   let body: { text?: string };
   try {
     body = (await request.json()) as { text?: string };
-  } catch {
+  } catch (err) {
+    logError("tts.request", err);
     return NextResponse.json(apiUnavailable("elevenlabs"), { status: 400 });
   }
 
@@ -46,6 +48,7 @@ export async function POST(request: Request) {
     );
 
     if (!response.ok) {
+      logWarn("tts.elevenlabs", `HTTP ${response.status}`);
       return NextResponse.json(apiUnavailable("elevenlabs"));
     }
 
@@ -57,7 +60,8 @@ export async function POST(request: Request) {
         "Cache-Control": "no-store",
       },
     });
-  } catch {
+  } catch (err) {
+    logError("tts.elevenlabs", err);
     return NextResponse.json(apiUnavailable("elevenlabs"));
   }
 }

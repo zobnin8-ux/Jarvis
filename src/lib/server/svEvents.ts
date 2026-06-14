@@ -1,4 +1,5 @@
 import type { SvEventsData, SvTickerItem } from "@/types/modules";
+import { logError } from "@/lib/server/logger";
 
 const DEMO_ITEMS: SvTickerItem[] = [
   {
@@ -112,7 +113,8 @@ export async function resolveSvEvents(): Promise<
         updatedAt: now,
       },
     };
-  } catch {
+  } catch (err) {
+    logError("sv-events.finnhub", err);
     return { kind: "unavailable" };
   }
 }

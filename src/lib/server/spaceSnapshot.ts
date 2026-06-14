@@ -1,6 +1,5 @@
 import type { SpaceLaunch } from "@/types/modules";
 import { formatCountdown } from "@/lib/format";
-import { fetchNextIssPass } from "@/lib/issPass";
 import {
   fetchLaunchNews,
   fetchSpacedevsLaunches,
@@ -8,6 +7,7 @@ import {
   spacedevsToLaunch,
   type SpacedevsLaunch,
 } from "@/lib/spaceLaunch";
+import { logError } from "@/lib/server/logger";
 
 async function fetchLaunchById(id: string): Promise<SpacedevsLaunch | null> {
   try {
@@ -21,7 +21,8 @@ async function fetchLaunchById(id: string): Promise<SpacedevsLaunch | null> {
 
     if (!response.ok) return null;
     return (await response.json()) as SpacedevsLaunch;
-  } catch {
+  } catch (err) {
+    logError("space.launch-by-id", err);
     return null;
   }
 }
@@ -75,12 +76,23 @@ export async function fetchLiveSpaceLaunch(): Promise<SpaceLaunch> {
   return buildLaunchResponse(next, false);
 }
 
-export async function attachIssPassOptional(
-  launch: SpaceLaunch
-): Promise<SpaceLaunch> {
-  const lat = parseFloat(process.env.WEATHER_LAT ?? "37.338207");
-  const lon = parseFloat(process.env.WEATHER_LON ?? "-121.886330");
-  const pass = await fetchNextIssPass(lat, lon);
-  if (!pass) return launch;
-  return { ...launch, issPass: pass };
+const SPACE_CACHE_TTL_MS = 15 * 60 * 1000;
+let spaceCache: { data: SpaceLaunch; expiresAt: number } | null = null;
+
+/** Cached space snapshot — one upstream fetch per 15 min max. */
+export async function fetchCachedSpaceLaunch(): Promise<SpaceLaunch> {
+  const now = Date.now();
+  if (spaceCache && spaceCache.expiresAt > now) {
+    return spaceCache.data;
+  }
+
+  try {
+    const launch = await fetchLiveSpaceLaunch();
+    spaceCache = { data: launch, expiresAt: now + SPACE_CACHE_TTL_MS };
+    return launch;
+  } catch (err) {
+    logError("space.snapshot", err);
+    if (spaceCache) return spaceCache.data;
+    throw err;
+  }
 }

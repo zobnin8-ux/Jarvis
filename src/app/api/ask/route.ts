@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import type { AskResponseData } from "@/types/modules";
 import { apiSuccess, apiUnavailable } from "@/lib/server/apiResponse";
-import { gatherBriefingSources } from "@/lib/server/briefingSources";
+import {
+  buildAskContextLines,
+  gatherBriefingSources,
+} from "@/lib/server/briefingSources";
+import { logError } from "@/lib/server/logger";
 
 async function askClaude(
   systemPrompt: string,
@@ -40,10 +44,6 @@ function buildDemoAnswer(query: string, userName: string): string {
   return `${userName}, я в demo-режиме. Вы спросили: «${query.slice(0, 120)}». Подключите ANTHROPIC_API_KEY для полноценных ответов.`;
 }
 
-function buildContextBlock(): string {
-  return "Контекст недоступен.";
-}
-
 export async function POST(request: Request) {
   let body: { query?: string };
   try {
@@ -73,19 +73,8 @@ export async function POST(request: Request) {
     return NextResponse.json(apiSuccess(data));
   }
 
-  const sourcesResult = await gatherBriefingSources();
-  let context = buildContextBlock();
-
-  if (sourcesResult.ok) {
-    const { weather, calendar, space } = sourcesResult.sources;
-    context = [
-      `Погода: ${weather.temperature}°C, ${weather.description}.`,
-      calendar.nextEvent
-        ? `Ближайшее событие: ${calendar.nextEvent.time} ${calendar.nextEvent.title}.`
-        : "Календарь: ближайших событий нет.",
-      `Космос: ${space.operator} ${space.mission}, ${space.countdown}.`,
-    ].join(" ");
-  }
+  const { sources, availability } = await gatherBriefingSources();
+  const context = buildAskContextLines(sources, availability).join(" ");
 
   const systemPrompt = [
     `Ты — Jarvis, лаконичный личный ассистент ${userName}.`,
@@ -96,7 +85,8 @@ export async function POST(request: Request) {
   try {
     const text = await askClaude(systemPrompt, query, apiKey);
     return NextResponse.json(apiSuccess({ text }));
-  } catch {
+  } catch (err) {
+    logError("ask.claude", err);
     return NextResponse.json(apiUnavailable("claude"));
   }
 }
