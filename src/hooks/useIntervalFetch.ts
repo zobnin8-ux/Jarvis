@@ -30,12 +30,37 @@ interface UseIntervalFetchResult<T> {
   unavailableService: string | null;
 }
 
+function isApiEnvelope(
+  value: unknown
+): value is { ok: true; data: unknown } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "ok" in value &&
+    (value as { ok: unknown }).ok === true &&
+    "data" in value
+  );
+}
+
+/** Unwrap legacy cache entries that stored full `{ ok, data }` API responses. */
+function normalizeCachedPayload<T>(
+  parsed: CachedPayload<unknown>
+): CachedPayload<T> | null {
+  let inner = parsed.data;
+  if (isApiEnvelope(inner)) {
+    inner = inner.data;
+  }
+  if (inner == null || typeof inner !== "object") return null;
+  return { data: inner as T, lastUpdated: parsed.lastUpdated };
+}
+
 function readCache<T>(cacheKey: string): CachedPayload<T> | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(cacheKey);
     if (!raw) return null;
-    return JSON.parse(raw) as CachedPayload<T>;
+    const parsed = JSON.parse(raw) as CachedPayload<unknown>;
+    return normalizeCachedPayload<T>(parsed);
   } catch {
     return null;
   }

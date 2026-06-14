@@ -13,7 +13,7 @@ export function SiliconValleyModule() {
   const { data, loading, unavailableService } = useIntervalFetch({
     fetcher,
     interval: config?.refreshInterval ?? 5 * 60 * 1000,
-    cacheKey: "jarvis-cache-sv",
+    cacheKey: "jarvis-cache-v2-sv",
   });
 
   if (unavailableService) {

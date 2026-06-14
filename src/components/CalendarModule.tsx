@@ -22,12 +22,12 @@ export function CalendarModule() {
   const { data, loading, unavailableService } = useIntervalFetch({
     fetcher,
     interval: config?.refreshInterval ?? 300000,
-    cacheKey: "jarvis-cache-calendar",
+    cacheKey: "jarvis-cache-v2-calendar",
     healthId: "calendar",
   });
 
   const weekAsideToday = useMemo(
-    () => data?.week.filter((day) => day.dateKey !== data.today.dateKey) ?? [],
+    () => data?.week?.filter((day) => day.dateKey !== data.today.dateKey) ?? [],
     [data]
   );
 

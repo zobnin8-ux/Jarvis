@@ -20,7 +20,7 @@ export function SpaceModule() {
   const { data: launch, loading, unavailableService } = useIntervalFetch({
     fetcher,
     interval: pollMs,
-    cacheKey: "jarvis-cache-space",
+    cacheKey: "jarvis-cache-v2-space",
     healthId: "space",
   });
 

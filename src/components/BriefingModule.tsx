@@ -13,7 +13,7 @@ export function BriefingModule() {
   const { data, loading, isStale, unavailableService } = useIntervalFetch({
     fetcher,
     interval: config?.refreshInterval ?? 60 * 60 * 1000,
-    cacheKey: "jarvis-cache-briefing",
+    cacheKey: "jarvis-cache-v2-briefing",
     healthId: "briefing",
   });
 

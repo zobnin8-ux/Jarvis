@@ -25,12 +25,18 @@ export function WeatherModule() {
   const { data, loading, unavailableService } = useIntervalFetch({
     fetcher,
     interval: config?.refreshInterval ?? 900000,
-    cacheKey: "jarvis-cache-weather",
+    cacheKey: "jarvis-cache-v2-weather",
     healthId: "weather",
   });
 
   const mood = useMemo(
-    () => (data ? resolveWeatherMood(data) : "cloudy"),
+    () =>
+      data
+        ? resolveWeatherMood({
+            icon: data.icon ?? "01d",
+            sunset: data.sunset ?? "20:00",
+          })
+        : "cloudy",
     [data]
   );
   const dayStatus = useMemo(
@@ -129,7 +135,7 @@ export function WeatherModule() {
                     <div className="weather-block">
                       <div className="weather-block-label">Precip Timeline</div>
                       <div className="weather-precip-timeline">
-                        {data.hourly.map((hour) => (
+                        {(data.hourly ?? []).map((hour) => (
                           <div key={hour.time} className="weather-precip-item">
                             <div className="weather-precip-time">{hour.time}</div>
                             <div className="weather-precip-bar-wrap">
@@ -149,7 +155,7 @@ export function WeatherModule() {
                     <div className="weather-block">
                       <div className="weather-block-label">Next 6 Hours</div>
                       <div className="weather-hourly">
-                        {data.hourly.map((hour) => (
+                        {(data.hourly ?? []).map((hour) => (
                           <div key={hour.time} className="weather-hourly-item">
                             <div className="weather-hourly-time">{hour.time}</div>
                             <WeatherHudIcon icon={hour.icon} size="sm" />
