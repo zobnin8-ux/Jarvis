@@ -1,0 +1,7 @@
+https://stream.radioparadise.com/mellow-128 -> 200 audio/aac
+https://stream.radioparadise.com/mellow -> 404 text/html
+https://stream.radioparadise.com/mellow-320 -> 200 audio/aac
+http://stream.radioparadise.com/mellow-128 -> 200 audio/aac
+https://radioparadise.com/api/now_playing?genre=mellow -> 200 text/html; charset=UTF-8
+http://pub7.di.fm/di_chillout -> FAIL fetch failed
+https://ice5.somafm.com/groovesalad-128-mp3 -> 206 audio/mpeg
