@@ -2,7 +2,6 @@ import type { ModuleConfig, ModuleId } from "@/types/modules";
 
 const FUTURE_MODULES: ModuleId[] = [
   "radar",
-  "silicon-valley",
   "gremlin",
   "notifications",
 ];
@@ -14,6 +13,7 @@ export const ACTIVE_MODULES: ModuleConfig[] = [
   { id: "space", enabled: true, refreshInterval: 30 * 60 * 1000 },
   { id: "ambient-audio", enabled: true },
   { id: "ai-briefing", enabled: true, refreshInterval: 60 * 60 * 1000 },
+  { id: "silicon-valley", enabled: true, refreshInterval: 5 * 60 * 1000 },
 ];
 
 export const RESERVED_MODULES: ModuleConfig[] = FUTURE_MODULES.map((id) => ({

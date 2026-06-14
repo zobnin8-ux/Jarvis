@@ -5,6 +5,8 @@ const SERVICE_LABELS: Record<ExternalServiceId, string> = {
   "google-calendar": "Календарь",
   spacedevs: "Космос",
   claude: "Брифинг",
+  elevenlabs: "Озвучка",
+  "sv-events": "Silicon Valley",
 };
 
 export function serviceUnavailableMessage(service: string): string {

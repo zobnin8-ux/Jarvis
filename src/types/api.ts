@@ -2,7 +2,9 @@ export type ExternalServiceId =
   | "openweather"
   | "google-calendar"
   | "spacedevs"
-  | "claude";
+  | "claude"
+  | "elevenlabs"
+  | "sv-events";
 
 export type UnavailableReason = "unavailable";
 

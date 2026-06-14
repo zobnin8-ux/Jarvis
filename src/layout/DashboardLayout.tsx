@@ -10,9 +10,11 @@ import { ClockModule } from "@/components/ClockModule";
 import { SpaceModule } from "@/components/SpaceModule";
 import { BriefingModule } from "@/components/BriefingModule";
 import { AmbientAudioModule } from "@/components/AmbientAudioModule";
+import { SiliconValleyModule } from "@/components/SiliconValleyModule";
 import { THEMES, THEME } from "@/config/theme";
 import { useIdleMode } from "@/hooks/useIdleMode";
 import { useMounted } from "@/hooks/useMounted";
+import { VoiceConsole } from "@/components/VoiceConsole";
 
 interface DashboardLayoutProps {
   futureSlot?: ReactNode;
@@ -80,15 +82,22 @@ export function DashboardLayout({ futureSlot }: DashboardLayoutProps) {
         initial={mounted ? { opacity: 0 } : false}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 0.6 }}
-        className="layer-ui relative z-20 mt-3 flex shrink-0 items-end justify-between gap-4"
+        className="layer-ui relative z-20 mt-3 flex shrink-0 flex-col gap-2"
       >
+        <ModuleErrorBoundary name="Silicon Valley">
+          <SiliconValleyModule />
+        </ModuleErrorBoundary>
+        <div className="flex items-end justify-between gap-4">
         <AmbientAudioModule />
         <div className="flex-1 pb-1 text-center">
           <div className="text-[10px] tracking-[0.4em] text-white/15 uppercase">
             Personal Mission Control
           </div>
         </div>
-        <div className="hidden w-[min(100%,280px)] sm:block" aria-hidden />
+        <div className="hidden w-[min(100%,280px)] sm:flex sm:justify-end">
+          <VoiceConsole />
+        </div>
+        </div>
       </motion.footer>
     </div>
   );

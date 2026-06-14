@@ -1,5 +1,6 @@
 "use client";
 
+import { CircadianThemeController } from "@/components/CircadianThemeController";
 import dynamic from "next/dynamic";
 import { CoreResonanceProvider } from "@/context/CoreResonanceContext";
 import { ModuleHealthProvider } from "@/context/ModuleHealthContext";
@@ -20,6 +21,7 @@ export function ClientDashboard() {
   return (
     <CoreResonanceProvider>
       <ModuleHealthProvider>
+        <CircadianThemeController />
         <DashboardLayout />
       </ModuleHealthProvider>
     </CoreResonanceProvider>

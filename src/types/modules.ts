@@ -119,6 +119,23 @@ export interface BriefingData {
   generatedAt: string;
 }
 
+export interface AskResponseData {
+  text: string;
+}
+
+export interface SvTickerItem {
+  id: string;
+  kind: "event" | "stock";
+  label: string;
+  detail: string;
+  change?: number;
+}
+
+export interface SvEventsData {
+  items: SvTickerItem[];
+  updatedAt: string;
+}
+
 export type ModuleId =
   | "weather"
   | "calendar"
