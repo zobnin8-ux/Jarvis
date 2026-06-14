@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* ── JARVIS (default) ───────────────────────────────────── */
+/* ?? JARVIS (default) ????????????????????????????????????? */
 :root,
 [data-theme="jarvis"] {
   --color-bg: #0b0f14;
@@ -49,7 +49,7 @@
   --idle-ambient-scale: 0.85;
 }
 
-/* ── NASA ─────────────────────────────────────────────────── */
+/* ?? NASA ??????????????????????????????????????????????????? */
 [data-theme="nasa"] {
   --color-bg: #080a0d;
   --color-text: #e8edf2;
@@ -86,7 +86,7 @@
   --idle-ambient-scale: 0.9;
 }
 
-/* ── MINIMAL ──────────────────────────────────────────────── */
+/* ?? MINIMAL ???????????????????????????????????????????????? */
 [data-theme="minimal"] {
   --color-bg: #0a0c10;
   --color-text: #f2f4f7;
@@ -155,7 +155,7 @@ body {
   background: color-mix(in srgb, var(--color-accent) 25%, transparent);
 }
 
-/* ── Panels (depth / glass) ─────────────────────────────── */
+/* ?? Panels (depth / glass) ??????????????????????????????? */
 .panel {
   position: relative;
   background: var(--panel-bg);
@@ -197,13 +197,13 @@ body {
   opacity: 0.6;
 }
 
-/* ── Depth layers ─────────────────────────────────────────── */
+/* ?? Depth layers ??????????????????????????????????????????? */
 .layer-1 { z-index: 0; }
 .layer-2 { z-index: 1; }
 .layer-hud { z-index: 5; position: relative; }
 .layer-ui { z-index: 20; }
 
-/* ── Ambient background ─────────────────────────────────── */
+/* ?? Ambient background ??????????????????????????????????? */
 .ambient-bg {
   pointer-events: none;
   position: fixed;
@@ -333,7 +333,7 @@ body {
   }
 }
 
-/* ── Scanline overlay ─────────────────────────────────────── */
+/* ?? Scanline overlay ??????????????????????????????????????? */
 .scanline {
   pointer-events: none;
   position: fixed;
@@ -349,7 +349,7 @@ body {
   opacity: var(--scanline-opacity);
 }
 
-/* ── Typography utilities ─────────────────────────────────── */
+/* ?? Typography utilities ??????????????????????????????????? */
 .label {
   font-size: 0.65rem;
   letter-spacing: 0.2em;
@@ -368,7 +368,7 @@ body {
   );
 }
 
-/* ── Side / bottom panel de-emphasis ─────────────────────── */
+/* ?? Side / bottom panel de-emphasis ??????????????????????? */
 .zone-side {
   opacity: var(--side-zone-opacity);
 }
@@ -404,7 +404,7 @@ body {
   opacity: 0.25;
 }
 
-/* Weather: lifted from side de-emphasis — alive corner, clock stays king */
+/* Weather: lifted from side de-emphasis ? alive corner, clock stays king */
 .zone-side-weather {
   opacity: 1;
   align-content: start;
@@ -444,7 +444,7 @@ body {
   opacity: 0.4;
 }
 
-/* ── Central zone spotlight ───────────────────────────────── */
+/* ?? Central zone spotlight ????????????????????????????????? */
 .zone-center {
   position: relative;
 }
@@ -489,7 +489,7 @@ body {
   z-index: 1;
 }
 
-/* ── Clock / central HUD ──────────────────────────────────── */
+/* ?? Clock / central HUD ???????????????????????????????????? */
 .clock-stage {
   position: relative;
   isolation: isolate;
@@ -616,7 +616,7 @@ body {
   transition: opacity 0.6s ease, filter 0.6s ease;
 }
 
-/* Core resonance — idle: slow system breath (always visible) */
+/* Core resonance ? idle: slow system breath (always visible) */
 .hud-core--idle .core-glow {
   animation: core-idle-breathe 16s ease-in-out infinite;
   opacity: calc(0.72 + var(--core-resonance) * 0.35);
@@ -648,7 +648,7 @@ body {
   transition: opacity 0.8s ease;
 }
 
-/* Core resonance — active: layered reactor wave (center → out) */
+/* Core resonance ? active: layered reactor wave (center ? out) */
 .hud-core--active .core-glow {
   animation: none;
   opacity: calc(0.68 + var(--core-live, 0) * 0.18);
@@ -785,7 +785,7 @@ body {
   color: color-mix(in srgb, var(--color-accent) 80%, #eaf2ff);
 }
 
-/* ── HUD-integrated system status ─────────────────────────── */
+/* ?? HUD-integrated system status ??????????????????????????? */
 .hud-status {
   margin-top: 2rem;
   padding-top: 1.5rem;
@@ -903,7 +903,7 @@ body {
   }
 }
 
-/* ── Idle mode ────────────────────────────────────────────── */
+/* ?? Idle mode ?????????????????????????????????????????????? */
 .command-shell {
   transition: filter 2s ease;
 }
@@ -945,7 +945,7 @@ body {
   animation-duration: 26s;
 }
 
-/* ── Ambient audio ────────────────────────────────────────── */
+/* ?? Ambient audio ?????????????????????????????????????????? */
 .ambient-audio {
   width: min(100%, 280px);
   padding: 0.65rem 0.85rem;
@@ -1051,7 +1051,7 @@ body {
   color: #eaf2ff;
 }
 
-/* ── Weather module ───────────────────────────────────────── */
+/* ?? Weather module ????????????????????????????????????????? */
 .weather-panel {
   --weather-accent: rgba(180, 200, 220, 0.5);
   --weather-glow: rgba(140, 170, 200, 0.2);
@@ -1557,7 +1557,7 @@ body {
   color: rgba(234, 242, 255, 0.42);
 }
 
-/* ── Space module · post-launch report ───────────────────── */
+/* ?? Space module � post-launch report ????????????????????? */
 .launch-report {
   padding-top: 0.25rem;
 }
@@ -1648,7 +1648,7 @@ body {
   color: rgba(234, 242, 255, 0.28);
 }
 
-/* ── Calendar module · Orbital Schedule ──────────────────── */
+/* ?? Calendar module � Orbital Schedule ???????????????????? */
 .calendar-panel {
   position: relative;
 }
@@ -2148,6 +2148,61 @@ body {
   color: rgba(234, 242, 255, 0.65);
 }
 
+/* World news slides */
+.orbital-operations-row {
+  width: 100%;
+}
+
+.orbital-operations-news .world-news-panel {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.world-news-slide {
+  flex: 1;
+  min-height: 5.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.world-news-meta {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: rgba(234, 242, 255, 0.42);
+  margin-bottom: 0.55rem;
+}
+
+.world-news-headline {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  color: rgba(234, 242, 255, 0.88);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+@media (min-width: 768px) {
+  .world-news-headline {
+    font-size: 1.15rem;
+    line-height: 1.5;
+  }
+}
+
+.world-news-headline:hover {
+  color: rgba(85, 214, 255, 0.95);
+}
+
+.world-news-empty {
+  font-family: var(--font-mono), monospace;
+  letter-spacing: 0.04em;
+}
+
 /* Service unavailable */
 .service-unavailable {
   border-color: rgba(255, 120, 100, 0.15);
@@ -2309,3 +2364,87 @@ body {
 .voice-console-unavailable .label {
   display: none;
 }
+
+/* Morning ritual */
+.morning-ritual {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 220px;
+}
+
+.morning-ritual-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.morning-ritual-start,
+.morning-ritual-stop {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid rgba(85, 214, 255, 0.28);
+  border-radius: 2px;
+  background: rgba(8, 18, 32, 0.55);
+  color: rgba(234, 242, 255, 0.82);
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.morning-ritual-start:hover:not(:disabled),
+.morning-ritual-stop:hover {
+  border-color: rgba(85, 214, 255, 0.55);
+  color: rgba(85, 214, 255, 0.95);
+}
+
+.morning-ritual-start:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.morning-ritual-stop {
+  border-color: rgba(255, 120, 100, 0.35);
+  color: rgba(255, 180, 160, 0.9);
+}
+
+.morning-ritual-wake {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.04em;
+  color: rgba(234, 242, 255, 0.45);
+  cursor: pointer;
+}
+
+.morning-ritual-wake input {
+  accent-color: rgba(85, 214, 255, 0.85);
+}
+
+.morning-ritual-status {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+
+.morning-ritual-phase {
+  font-size: 0.62rem;
+  color: rgba(234, 242, 255, 0.55);
+}
+
+.morning-ritual-privacy {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.48rem;
+  letter-spacing: 0.04em;
+  color: rgba(255, 180, 120, 0.65);
+  line-height: 1.35;
+}
+
+.footer-controls {
+  width: 100%;
+}
+

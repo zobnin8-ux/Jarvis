@@ -105,13 +105,20 @@ export interface SpaceLaunch {
   newsHeadline?: string;
   newsSource?: string;
   postLaunchExpiresAt?: string;
-  issPass?: IssPassInfo;
 }
 
-export interface IssPassInfo {
-  time: string;
-  durationMin: number;
-  risetimeIso: string;
+export interface IssTelemetryData {
+  noradId: number;
+  locationLabel: string;
+  latitude: number;
+  longitude: number;
+  altitudeKm: number;
+  velocityKms: number;
+  maxVelocityKms: number;
+  visibility: "daylight" | "eclipsed";
+  orbitNumberToday?: number;
+  orbitProgressPct?: number;
+  updatedAt: string;
 }
 
 export interface BriefingData {
@@ -136,11 +143,26 @@ export interface SvEventsData {
   updatedAt: string;
 }
 
+export interface NewsHeadline {
+  source: string;
+  sourceLabel: string;
+  lang: "en" | "ru";
+  title: string;
+  url: string;
+  publishedAt: string;
+}
+
+export interface WorldNewsData {
+  headlines: NewsHeadline[];
+  generatedAt: string;
+}
+
 export type ModuleId =
   | "weather"
   | "calendar"
   | "clock"
   | "space"
+  | "world-news"
   | "ambient-audio"
   | "radar"
   | "silicon-valley"

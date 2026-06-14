@@ -15,6 +15,7 @@ import { THEMES, THEME } from "@/config/theme";
 import { useIdleMode } from "@/hooks/useIdleMode";
 import { useMounted } from "@/hooks/useMounted";
 import { VoiceConsole } from "@/components/VoiceConsole";
+import { WorldNewsModule } from "@/components/WorldNewsModule";
 
 interface DashboardLayoutProps {
   futureSlot?: ReactNode;
@@ -68,9 +69,18 @@ export function DashboardLayout({ futureSlot }: DashboardLayoutProps) {
         </div>
 
         <div className="zone-bottom min-h-0 lg:col-span-12 lg:row-start-2">
-          <ModuleErrorBoundary name="Space">
-            <SpaceModule />
-          </ModuleErrorBoundary>
+          <div className="orbital-operations-row flex flex-col lg:flex-row lg:items-stretch gap-4 lg:gap-5">
+            <div className="orbital-operations-main min-w-0 flex-1">
+              <ModuleErrorBoundary name="Space">
+                <SpaceModule />
+              </ModuleErrorBoundary>
+            </div>
+            <div className="orbital-operations-news hidden lg:block lg:w-[min(100%,340px)] xl:w-[min(100%,380px)] shrink-0">
+              <ModuleErrorBoundary name="World News">
+                <WorldNewsModule />
+              </ModuleErrorBoundary>
+            </div>
+          </div>
         </div>
 
         {futureSlot && (
@@ -88,15 +98,15 @@ export function DashboardLayout({ futureSlot }: DashboardLayoutProps) {
           <SiliconValleyModule />
         </ModuleErrorBoundary>
         <div className="flex items-end justify-between gap-4">
-        <AmbientAudioModule />
-        <div className="flex-1 pb-1 text-center">
-          <div className="text-[10px] tracking-[0.4em] text-white/15 uppercase">
-            Personal Mission Control
+          <AmbientAudioModule />
+          <div className="flex-1 pb-1 text-center">
+            <div className="text-[10px] tracking-[0.4em] text-white/15 uppercase">
+              Personal Mission Control
+            </div>
           </div>
-        </div>
-        <div className="hidden w-[min(100%,280px)] sm:flex sm:justify-end">
-          <VoiceConsole />
-        </div>
+          <div className="hidden w-[min(100%,280px)] sm:flex sm:justify-end">
+            <VoiceConsole />
+          </div>
         </div>
       </motion.footer>
     </div>
