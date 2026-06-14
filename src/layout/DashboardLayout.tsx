@@ -42,7 +42,7 @@ export function DashboardLayout({ futureSlot }: DashboardLayoutProps) {
       >
         <div className="label">Command Center</div>
         <div className="label text-white/25">
-          {THEMES[THEME].label} · v0.7
+          {THEMES[THEME].label} · v0.8
         </div>
       </motion.header>
 

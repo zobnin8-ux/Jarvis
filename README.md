@@ -4,8 +4,9 @@
 Рассчитан на **вкладку браузера на компьютере** (Chrome / Edge), не на TV-киоск 24/7.
 
 **Репозиторий:** [github.com/zobnin8-ux/Jarvis](https://github.com/zobnin8-ux/Jarvis)  
+**Obsidian:** [docs/Jarvis Command Center.md](docs/Jarvis%20Command%20Center.md) — краткая заметка для vault  
 **Стек:** Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · Framer Motion  
-**Версия UI:** v0.6 — брифинг, голос (ElevenLabs-клон), SV-тикер, циркадная тема, graceful degradation
+**Версия UI:** v0.8 — insight-брифинг, World News, утренний ритуал, голос (toggle), SV-тикер, циркадная тема, graceful degradation
 
 ---
 
@@ -39,12 +40,12 @@
 │    BRIEFING     │                            │                 │
 │  (AI-сводка)    │                            │                 │
 ├─────────────────┴────────────────────────────┴─────────────────┤
-│              ORBITAL OPERATIONS (Space)                        │
-│         countdown · post-launch report · ISS pass              │
+│  ORBITAL OPERATIONS — Space (countdown / post-launch / NASA)   │
+│                          │  World News (RSS, RU/EN, 10 с)       │
 ├────────────────────────────────────────────────────────────────┤
 │  SV TICKER — tech-события + котировки (бегущая строка)         │
 ├────────────────────────────────────────────────────────────────┤
-│  Ambient Audio    Personal Mission Control    Voice Console ◯   │
+│  Ambient Audio + Утро/Ритуал  ·  Voice Console ◯               │
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -79,9 +80,38 @@
 | | |
 |---|---|
 | **Источник** | Claude (`claude-sonnet-4-6`) + контекст: погода, календарь, космос |
-| **Refresh** | 1 ч; серверный кэш — 3 ч |
+| **Refresh** | 1 ч; серверный кэш — 3 ч (инвалидируется при смене `dayPart`) |
 | **Без `ANTHROPIC_API_KEY`** | Шаблонный demo-брифинг из тех же данных |
 | **Расположение** | Левая колонка, под Weather |
+| **Формат** | Русский plain text, **без markdown**; 1–3 предложения (ночью ≤ 2) |
+| **Логика** | «Слой смысла» — не дублирует панели; срочность пуска только при `imminent` (< 2 ч или liftoff); советы «на выход/зонт» только утром/днём |
+| **Файлы** | `briefingSources.ts`, `briefingContext.ts`, `stripMarkdown.ts`, `daypart.ts` |
+
+Часовой пояс брифинга: `BRIEFING_TZ` (напр. `America/Los_Angeles`) или offset из OpenWeather.
+
+### World News (Orbital Operations)
+
+| | |
+|---|---|
+| **Расположение** | Справа от Space, экраны **lg+** |
+| **Источники** | BBC World, The Guardian, РИА, RBC (RSS) |
+| **Refresh** | 10 мин (сервер); слайды — **10 с**, чередование RU/EN |
+| **Ключи** | Не нужны |
+| **UI** | Заголовок по центру блока, line-clamp 3, ссылка в новую вкладку |
+| **Файлы** | `WorldNewsModule.tsx`, `worldNews.ts`, `/api/world-news` |
+
+### Morning Ritual (утренний ритуал)
+
+| | |
+|---|---|
+| **Расположение** | Футер, под Ambient Audio |
+| **Запуск** | Кнопка **«Утро / Ритуал»** (всегда) + опционально тумблер «Слушать» (фраза `привет джарвис`, **выкл.** по умолчанию) |
+| **Сценарий** | Приветствие → настроение → Claude-реакция → зарядка? (фикс. скрипт) → музыка? (`play()` только по «да») → мотивация |
+| **TTS** | Отдельный `Audio`, не радио / не реактор |
+| **Стоп** | Кнопка или «стоп/хватит»; прерывание при скрытой вкладке |
+| **Файлы** | `MorningRitual.tsx`, `useRoutineEngine.ts`, `morningRoutine.ts`, `/api/ritual` |
+
+Радио **не** ставится на паузу ассистентом — только пользователь или явное «да» на включение.
 
 ### Calendar
 
@@ -96,11 +126,25 @@
 
 | | |
 |---|---|
-| **Источник** | [The Space Devs](https://thespacedevs.com/) + Open Notify (ISS passes) |
-| **Refresh** | 30 мин (countdown) / 90 с (liftoff/postlaunch) |
+| **Источник** | [The Space Devs](https://thespacedevs.com/) |
+| **Refresh** | 30 мин |
 | **Фазы** | `countdown` → `liftoff` (~30 мин) → `postlaunch` (12 ч) → следующий манифест |
 | **Post-launch** | Mission Report: outcome, orbit, booster, payload, новость (SpaceX/NASA) |
-| **ISS** | «ISS over you at HH:MM, ~N min» по вашим координатам |
+| **NASA** | Последний breaking news из RSS NASA |
+
+### ISS Telemetry (опционально, в коде)
+
+| | |
+|---|---|
+| **Статус** | Модуль и `/api/iss-telemetry` есть в репозитории; в **v0.8 layout** не подключён (можно вернуть в футер) |
+| **Источник** | [Where The ISS At](https://wheretheiss.at/) — позиция, скорость, SUNLIT/ECLIPSE |
+| **Геокодинг** | Open-Meteo reverse geocoding → «город, регион, страна» |
+| **Орбита** | TLE Celestrak + `satellite.js` — номер витка за сутки, % текущего витка |
+| **Refresh** | Клиент 15–20 с; сервер `cache: no-store` |
+| **Ключи** | Не нужны |
+| **UI** | LIVE POSITION · NORAD 25544 · место над Землёй · шкала скорости · сетка Alt/Speed/Lat/Lon |
+
+Без карты и ground track — только компактная телеметрическая карточка.
 
 ### Silicon Valley Ticker
 
@@ -123,17 +167,17 @@
 
 | | |
 |---|---|
-| **Ввод** | Web Speech API, push-to-talk, `ru-RU` |
+| **Ввод** | Web Speech API, **toggle** (клик или пробел), `ru-RU` |
 | **Мозг** | `/api/ask` → Claude (+ контекст погода / календарь / космос) |
 | **Озвучка** | `/api/tts` → ElevenLabs (клон) → **отдельный** `new Audio()` |
 | **Фолбэк** | Только если ElevenLabs недоступен — `SpeechSynthesis` (системный голос) |
-| **Управление** | Кнопка ◯ справа в футере или **удержание пробела** |
+| **Управление** | Кнопка ◯ справа в футере: **пробел — начать · пробел — отправить** |
 | **Браузер** | Chrome / Edge; Firefox — кнопка скрыта (`supported: false`) |
 
 **Важно:** TTS **не** подключён к радио и **не** идёт в AnalyserNode / Core Reactor. Радио и голос — независимые аудио-каналы.
 
 **Защита от двойной озвучки:**
-- Запрос к Claude/TTS отправляется **один раз** за сессию push-to-talk (`onFinal` при `onend` распознавания).
+- Запрос к Claude/TTS отправляется **один раз** за сессию (по toggle off / второму нажатию пробела).
 - Повторный `speak()` отменяет предыдущий (`generationRef`).
 - Перед ElevenLabs всегда вызывается `speechSynthesis.cancel()` — клон и системный голос **не смешиваются**.
 
@@ -178,7 +222,7 @@ npm run build
 npm start
 ```
 
-Откройте [http://localhost:3000](http://localhost:3000).  
+Откройте [http://localhost:3001](http://localhost:3001).  
 F11 — полноэкранный режим браузера.
 
 > После изменения `.env.local` **перезапустите** `npm run dev`.
@@ -219,8 +263,9 @@ F11 — полноэкранный режим браузера.
 
 | Переменная | Обязательно | Описание |
 |------------|-------------|----------|
-| `ANTHROPIC_API_KEY` | нет* | Claude — брифинг + голосовые ответы |
+| `ANTHROPIC_API_KEY` | нет* | Claude — брифинг + голосовые ответы + ритуал |
 | `ANTHROPIC_MODEL` | нет | Default: `claude-sonnet-4-6` |
+| `BRIEFING_TZ` | нет | IANA timezone для `dayPart` (напр. `America/Los_Angeles`) |
 
 ### Серверные — голос (ElevenLabs)
 
@@ -313,8 +358,8 @@ FINNHUB_API_KEY=...
 ### Поток
 
 ```
-[Push-to-talk] → SpeechRecognition (ru-RU)
-       ↓
+[Toggle / пробел] → SpeechRecognition (ru-RU)
+       ↓ (второй toggle / пробел)
    /api/ask (Claude + контекст погода/календарь/космос)
        ↓
    Текст на экране + /api/tts (ElevenLabs mp3)
@@ -366,11 +411,15 @@ onFinal (один раз) → /api/ask → speak(text)
 |-------|------|----------|
 | GET | `/api/weather` | `WeatherData` |
 | GET | `/api/calendar` | `CalendarData` |
-| GET | `/api/space` | `SpaceLaunch` + `issPass` |
+| GET | `/api/space` | `SpaceLaunch` |
+| GET | `/api/world-news` | `WorldNewsData` (RSS headlines) |
+| GET | `/api/nasa-news` | Последний заголовок NASA RSS |
+| GET | `/api/iss-telemetry` | `IssTelemetryData` (МКС, live) |
 | GET | `/api/briefing` | `BriefingData` (Claude, кэш 3 ч) |
 | GET | `/api/sv-events` | `SvEventsData` (тикер) |
 | GET | `/api/radio/metadata?station=...` | Метаданные трека |
 | POST | `/api/ask` | `{ query }` → `{ text }` |
+| POST | `/api/ritual` | `{ phase: "mood" \| "closing", mood? }` → `{ text }` |
 | POST | `/api/tts` | `{ text }` → `audio/mpeg` или `{ ok: false }` |
 
 Типы данных: `src/types/modules.ts`.  
@@ -387,7 +436,11 @@ src/
 │   │   ├── weather/
 │   │   ├── calendar/
 │   │   ├── space/
+│   │   ├── nasa-news/
+│   │   ├── world-news/
+│   │   ├── iss-telemetry/
 │   │   ├── briefing/
+│   │   ├── ritual/
 │   │   ├── sv-events/
 │   │   ├── ask/
 │   │   ├── tts/
@@ -395,9 +448,11 @@ src/
 │   ├── globals.css       # HUD-тема, mood, circadian overrides
 │   ├── layout.tsx
 │   └── page.tsx
-├── components/           # UI-модули + VoiceConsole + ErrorBoundary
+├── components/           # UI-модули + WorldNews + MorningRitual + VoiceConsole
 ├── config/
 │   ├── theme.ts          # Темы + circadian palette
+│   ├── news.ts           # RSS feeds World News
+│   ├── morningRoutine.ts # Фраза будилки + шаги зарядки
 │   ├── radio.ts          # ⚠️ не трогать без необходимости
 │   └── coreReactor.ts    # ⚠️ не трогать
 ├── context/
@@ -407,13 +462,15 @@ src/
 │   ├── useIntervalFetch.ts        # Retry, cache, stale, unavailable
 │   ├── useCoreResonanceVisuals.ts # ⚠️ не трогать
 │   ├── useVoiceInput.ts / useVoiceOutput.ts
+│   ├── useRoutineEngine.ts        # Утренний ритуал
 │   └── useSystemStatus.ts
 ├── layout/
 │   └── DashboardLayout.tsx
 ├── lib/
-│   ├── server/           # briefingSources, spaceSnapshot, svEvents, apiResponse
+│   ├── server/           # briefingSources, worldNews, spaceSnapshot, …
+│   ├── briefingContext.ts, stripMarkdown.ts, daypart.ts, speechRecognition.ts
 │   ├── client/           # apiFetch + ServiceUnavailableError
-│   ├── calendar.ts, weather.ts, spaceLaunch.ts, issPass.ts, …
+│   ├── calendar.ts, weather.ts, spaceLaunch.ts, …
 │   ├── coreReactorEngine.ts  # ⚠️ не трогать
 │   └── audioAnalysis.ts      # ⚠️ не трогать
 ├── services/             # Клиентские fetch-обёртки
@@ -432,6 +489,7 @@ src/
 | calendar | ✅ active | 5 min |
 | clock | ✅ active | — |
 | space | ✅ active | 30 min / 90 s |
+| world-news | ✅ active | 10 min |
 | ambient-audio | ✅ active | — |
 | ai-briefing | ✅ active | 1 h |
 | silicon-valley | ✅ active | 5 min |
@@ -477,10 +535,11 @@ src/
 ### Скрипты
 
 ```bash
-npm run dev      # localhost:3000, hot reload
+npm run dev      # localhost:3001, hot reload
 npm run build    # production build + typecheck
 npm run start    # serve после build
 npm run lint     # ESLint
+npm test         # Vitest (pure lib)
 ```
 
 ### Типичные проблемы
@@ -488,13 +547,15 @@ npm run lint     # ESLint
 | Симптом | Решение |
 |---------|---------|
 | `MODULE OFFLINE` (Weather / Calendar) | Очистить `localStorage` (`jarvis-cache-*`), Ctrl+Shift+R; обновить до v0.6+ |
-| Все модули Stale / «временно недоступен» | Проверить сеть; перезапустить `npm run dev`; API: `Invoke-RestMethod localhost:3000/api/weather` |
+| Все модули Stale / «временно недоступен» | Проверить сеть; перезапустить `npm run dev`; API: `Invoke-RestMethod localhost:3001/api/weather` |
 | Два голоса одновременно | Обновить репо; перезапустить dev — исправлено в `useVoiceOutput` + `onFinal` |
-| `Cannot find module './xxx.js'`, 500 | Остановить dev, удалить `.next`, `npm run dev` |
+| `Internal Server Error` на `/` | Остановить все `npm run dev`, удалить `.next`, запустить **один** dev на `:3001` |
+| ISS telemetry не видна | В v0.8 не в layout; модуль в коде — подключить `IssTelemetryModule` в `DashboardLayout` |
 | Build + dev одновременно | Не запускать параллельно |
 | Ключи не подхватились | Перезапустить dev после правки `.env.local` |
 | Voice кнопки нет | Firefox — нет Web Speech API; используйте Chrome/Edge |
-| Порт занят / другой порт | Next может стартовать на `:3001` — открывайте URL из терминала |
+| Порт занят | Убедитесь, что не запущено несколько `npm run dev`; Jarvis по умолчанию на `:3001` |
+| OpenWeather key blocked | Не запускайте несколько dev-серверов; лимит Free — 60 req/min; подождите ~1 ч или смените ключ |
 | SSL при `git push` | Windows: временно `GIT_SSL_NO_VERIFY=1` или настроить сертификаты |
 | Calendar пустой | Расшарить календарь на service account email |
 
@@ -513,9 +574,11 @@ Object.keys(localStorage)
 ### Проверка API локально
 
 ```powershell
-Invoke-RestMethod http://localhost:3000/api/weather
-Invoke-RestMethod http://localhost:3000/api/briefing
-Invoke-RestMethod http://localhost:3000/api/sv-events
+Invoke-RestMethod http://localhost:3001/api/weather
+Invoke-RestMethod http://localhost:3001/api/briefing
+Invoke-RestMethod http://localhost:3001/api/sv-events
+Invoke-RestMethod http://localhost:3001/api/world-news
+Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 ```
 
 Успешный ответ: `{ "ok": true, "data": { ... } }`.
@@ -545,6 +608,8 @@ Invoke-RestMethod http://localhost:3000/api/sv-events
 
 ## Известные ограничения
 
+- World News — только на экранах **lg+** (рядом с Space).
+- Утренний ритуал и Voice — Chrome / Edge (Web Speech API).
 - UI погоды в развёрнутой телеметрии — мелковат (запланирован readability pass).
 - Radio Paradise album art в API есть, в UI пока не показан.
 - Post-launch report держится **12 часов**, затем переключается на **следующий** ближайший пуск из API (не «ваш» Starlink навсегда).
@@ -557,7 +622,9 @@ Invoke-RestMethod http://localhost:3000/api/sv-events
 
 | Версия | Изменения |
 |--------|-----------|
-| **v0.6** | Исправлен двойной TTS (один `onFinal`, `generationRef`, cancel перед ElevenLabs). Кэш модулей `jarvis-cache-v2-*` + миграция legacy `{ ok, data }`. Защита Weather/Calendar от битого кэша. |
+| **v0.8** | **Insight-брифинг** (без markdown, dayPart, без дублирования панелей). **World News** (RSS RU/EN). **Утренний ритуал** (кнопка + опц. фраза будилки). Vitest + structured logging. |
+| **v0.7** | ISS Telemetry (код). NASA RSS в Space. Голос: toggle. Fix приветствия. Удалена карта МКС из Space. |
+| **v0.6** | Исправлен двойной TTS. Кэш модулей `jarvis-cache-v2-*`. **Fix:** бесконечный refetch в `useIntervalFetch` (убивал OpenWeather). Dev-порт **3001**. Серверный кэш погоды 10 мин. |
 | **v0.5** | AI Briefing, Voice Console, SV ticker, circadian theme, graceful degradation, ModuleHealth. |
 | **v0.4** | Resilience: retry, stale cache, error boundaries, System Status. |
 
@@ -565,11 +632,11 @@ Invoke-RestMethod http://localhost:3000/api/sv-events
 
 ## Roadmap
 
-- [ ] Перенести radio player под core (меньше пустого места в футере)
+- [ ] ISS telemetry обратно в футер (модуль готов)
 - [ ] Readability pass: weather telemetry, calendar empty states
 - [ ] Album art в Ambient Audio (Radio Paradise)
 - [ ] Модули: radar, gremlin, notifications
-- [ ] Wake-word (сейчас только push-to-talk)
+- [ ] Расширение ритуала (вечерний сценарий)
 
 ---
 
@@ -582,6 +649,8 @@ Private project. All rights reserved.
 ## Благодарности
 
 - [The Space Devs](https://thespacedevs.com/) — launch data  
-- [Open Notify](http://open-notify.org/) — ISS passes  
+- [Where The ISS At](https://wheretheiss.at/) · [CelesTrak](https://celestrak.org/) — ISS position / TLE  
+- [Open-Meteo](https://open-meteo.com/) — reverse geocoding  
+- [NASA RSS](https://www.nasa.gov/rss/dyn/breaking_news.rss) — breaking news  
 - [SomaFM](https://somafm.com/) · [Radio Paradise](https://radioparadise.com/) — streams  
 - [OpenWeather](https://openweathermap.org/) · [Anthropic](https://anthropic.com/) · [ElevenLabs](https://elevenlabs.io/) · [Finnhub](https://finnhub.io/)
