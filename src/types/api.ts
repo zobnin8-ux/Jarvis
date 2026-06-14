@@ -5,7 +5,8 @@ export type ExternalServiceId =
   | "claude"
   | "elevenlabs"
   | "sv-events"
-  | "world-news";
+  | "world-news"
+  | "youtube";
 
 export type UnavailableReason = "unavailable";
 

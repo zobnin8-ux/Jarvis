@@ -13,6 +13,7 @@ export const ACTIVE_MODULES: ModuleConfig[] = [
   { id: "space", enabled: true, refreshInterval: 30 * 60 * 1000 },
   { id: "world-news", enabled: true, refreshInterval: 10 * 60 * 1000 },
   { id: "ambient-audio", enabled: true },
+  { id: "audiobooks", enabled: true, refreshInterval: 30 * 60 * 1000 },
   { id: "ai-briefing", enabled: true, refreshInterval: 60 * 60 * 1000 },
   { id: "silicon-valley", enabled: true, refreshInterval: 5 * 60 * 1000 },
 ];

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { CoreResonanceProvider } from "@/context/CoreResonanceContext";
 import { ModuleHealthProvider } from "@/context/ModuleHealthContext";
 import { NightModeProvider } from "@/context/NightModeContext";
+import { AudiobooksProvider } from "@/context/AudiobooksContext";
 
 const DashboardLayout = dynamic(
   () => import("@/layout/DashboardLayout").then((mod) => mod.DashboardLayout),
@@ -23,8 +24,10 @@ export function ClientDashboard() {
     <CoreResonanceProvider>
       <ModuleHealthProvider>
         <NightModeProvider>
-          <CircadianThemeController />
-          <DashboardLayout />
+          <AudiobooksProvider>
+            <CircadianThemeController />
+            <DashboardLayout />
+          </AudiobooksProvider>
         </NightModeProvider>
       </ModuleHealthProvider>
     </CoreResonanceProvider>

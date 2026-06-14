@@ -6,7 +6,8 @@ export type NightPollModuleId =
   | "space"
   | "worldNews"
   | "nasa"
-  | "sv";
+  | "sv"
+  | "audiobooks";
 
 export const NIGHT_MODE_STORAGE_KEY = "jarvis-night-mode";
 

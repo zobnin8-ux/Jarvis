@@ -157,6 +157,19 @@ export interface WorldNewsData {
   generatedAt: string;
 }
 
+export interface AudiobookItem {
+  videoId: string;
+  title: string;
+  thumbnailUrl: string;
+  publishedAt: string;
+  durationSec?: number;
+}
+
+export interface AudiobookData {
+  channelTitle?: string;
+  items: AudiobookItem[];
+}
+
 export type ModuleId =
   | "weather"
   | "calendar"
@@ -164,6 +177,7 @@ export type ModuleId =
   | "space"
   | "world-news"
   | "ambient-audio"
+  | "audiobooks"
   | "radar"
   | "silicon-valley"
   | "gremlin"

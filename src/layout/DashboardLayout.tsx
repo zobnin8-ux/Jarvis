@@ -10,6 +10,7 @@ import { ClockModule } from "@/components/ClockModule";
 import { SpaceModule } from "@/components/SpaceModule";
 import { BriefingModule } from "@/components/BriefingModule";
 import { AmbientAudioModule } from "@/components/AmbientAudioModule";
+import { AudiobookPlayer } from "@/components/AudiobookPlayer";
 import { SiliconValleyModule } from "@/components/SiliconValleyModule";
 import { THEMES, THEME } from "@/config/theme";
 import { useIdleMode } from "@/hooks/useIdleMode";
@@ -112,7 +113,12 @@ export function DashboardLayout({ futureSlot }: DashboardLayoutProps) {
         </ModuleErrorBoundary>
         <div className="footer-controls flex items-end justify-between gap-3 md:gap-4">
           <div className="flex min-w-0 flex-col gap-2">
-            <AmbientAudioModule />
+            <div className="footer-audio-row flex min-w-0 flex-wrap items-start gap-2">
+              <AmbientAudioModule />
+              <ModuleErrorBoundary name="Audiobooks">
+                <AudiobookPlayer />
+              </ModuleErrorBoundary>
+            </div>
             <ModuleErrorBoundary name="Morning Ritual">
               <MorningRitual />
             </ModuleErrorBoundary>
