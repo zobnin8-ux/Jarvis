@@ -78,21 +78,32 @@ export async function fetchLiveSpaceLaunch(): Promise<SpaceLaunch> {
 
 const SPACE_CACHE_TTL_MS = 15 * 60 * 1000;
 let spaceCache: { data: SpaceLaunch; expiresAt: number } | null = null;
+let inflightFetch: Promise<SpaceLaunch> | null = null;
 
-/** Cached space snapshot — one upstream fetch per 15 min max. */
-export async function fetchCachedSpaceLaunch(): Promise<SpaceLaunch> {
-  const now = Date.now();
-  if (spaceCache && spaceCache.expiresAt > now) {
-    return spaceCache.data;
-  }
-
+async function refreshSpaceCache(): Promise<SpaceLaunch> {
   try {
     const launch = await fetchLiveSpaceLaunch();
-    spaceCache = { data: launch, expiresAt: now + SPACE_CACHE_TTL_MS };
+    spaceCache = { data: launch, expiresAt: Date.now() + SPACE_CACHE_TTL_MS };
     return launch;
   } catch (err) {
     logError("space.snapshot", err);
     if (spaceCache) return spaceCache.data;
     throw err;
   }
+}
+
+/** Cached space snapshot — one upstream fetch per 15 min max; parallel callers share one in-flight request. */
+export async function fetchCachedSpaceLaunch(): Promise<SpaceLaunch> {
+  const now = Date.now();
+  if (spaceCache && spaceCache.expiresAt > now) {
+    return spaceCache.data;
+  }
+
+  if (!inflightFetch) {
+    inflightFetch = refreshSpaceCache().finally(() => {
+      inflightFetch = null;
+    });
+  }
+
+  return inflightFetch;
 }
