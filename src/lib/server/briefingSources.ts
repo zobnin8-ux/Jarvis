@@ -3,7 +3,6 @@ import type {
   SpaceLaunch,
   WeatherData,
 } from "@/types/modules";
-import { getWeatherDayStatus } from "@/lib/weatherMood";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { google } from "googleapis";
@@ -21,10 +20,17 @@ import { fetchCachedSpaceLaunch } from "@/lib/server/spaceSnapshot";
 import { logError } from "@/lib/server/logger";
 import {
   type DayPart,
-  getBriefingTypeLabel,
   getDayPartGreeting,
   getDayPartLabelRu,
 } from "@/lib/daypart";
+import {
+  BRIEFING_VOICE_RULES,
+  buildLaunchBriefingContext,
+  dayPartBehaviorRules,
+  findTomorrowFirstEventTime,
+  isQuietDayPart,
+  minutesUntil,
+} from "@/lib/briefingContext";
 
 export type SourceResult<T> =
   | { kind: "demo"; data: T }
@@ -373,44 +379,6 @@ export interface BriefingSourcesBundle {
   weatherUtcOffsetSec?: number;
 }
 
-function weatherSentence(
-  weather: WeatherData,
-  availability: BriefingSourceAvailability
-): string | null {
-  if (!availability.weatherAvailable) {
-    return "Данные о погоде временно недоступны.";
-  }
-  const city = process.env.NEXT_PUBLIC_WEATHER_CITY ?? "San Jose";
-  const status = getWeatherDayStatus(weather);
-  return `В ${city} ${status.toLowerCase()}, ${weather.temperature}°C, ${weather.description.toLowerCase()}.`;
-}
-
-function calendarSentence(
-  calendar: CalendarData,
-  availability: BriefingSourceAvailability
-): string | null {
-  if (!availability.calendarAvailable) {
-    return "Календарь временно недоступен.";
-  }
-  if (calendar.nextEvent) {
-    return `Ближайшее — «${calendar.nextEvent.title}» в ${calendar.nextEvent.time}.`;
-  }
-  return "Ближайших встреч в календаре нет.";
-}
-
-function spaceSentence(
-  space: SpaceLaunch,
-  availability: BriefingSourceAvailability
-): string | null {
-  if (!availability.spaceAvailable) {
-    return "Данные о запусках временно недоступны.";
-  }
-  if (space.phase === "countdown") {
-    return `${space.operator}, ${space.mission}: ${space.countdown.replace("T-", "через ")}.`;
-  }
-  return `${space.mission} — фаза ${space.phase}.`;
-}
-
 export function buildDemoBriefing(
   weather: WeatherData,
   calendar: CalendarData,
@@ -419,38 +387,49 @@ export function buildDemoBriefing(
   availability: BriefingSourceAvailability,
   dayPart: DayPart
 ): string {
+  const quiet = isQuietDayPart(dayPart);
+  const launchCtx = buildLaunchBriefingContext(
+    space,
+    availability.spaceAvailable
+  );
   const parts: string[] = [getDayPartGreeting(userName, dayPart)];
 
-  if (availability.calendarAvailable && calendar.nextEvent) {
+  if (launchCtx.imminent) {
     parts.push(
-      `Главное сейчас — «${calendar.nextEvent.title}» в ${calendar.nextEvent.time}.`
+      "Пуск совсем скоро — имеет смысл заглянуть в Orbital Operations."
     );
-  } else if (availability.spaceAvailable && space.phase === "countdown") {
-    parts.push(`На орбите внимание: ${space.operator}, ${space.mission}.`);
-  } else if (availability.weatherAvailable) {
-    parts.push(weatherSentence(weather, availability)!);
+  } else if (quiet) {
+    const tomorrowTime = availability.calendarAvailable
+      ? findTomorrowFirstEventTime(calendar)
+      : null;
+    if (tomorrowTime) {
+      parts.push(
+        `Завтра день начнётся в ${tomorrowTime} — можно выспаться.`
+      );
+    } else {
+      parts.push("Срочного ничего — можно спокойно отдыхать.");
+    }
+  } else if (
+    availability.weatherAvailable &&
+    weather.precipChance > 50
+  ) {
+    parts.push(
+      "Высокая вероятность осадков — возьми зонт, если выходишь."
+    );
+  } else if (availability.calendarAvailable && calendar.nextEvent) {
+    const mins = minutesUntil(calendar.nextEvent.startIso);
+    if (mins != null && mins < 60) {
+      parts.push(
+        `Через ${mins} мин начнётся встреча — самое время собираться.`
+      );
+    } else {
+      parts.push("День спокойный — сфокусируйся на главном.");
+    }
+  } else {
+    parts.push("На сегодня всё под контролем.");
   }
 
-  const secondary: string[] = [];
-  const weatherLine = weatherSentence(weather, availability);
-  const calendarLine = calendarSentence(calendar, availability);
-  const spaceLine = spaceSentence(space, availability);
-
-  if (weatherLine && !parts.some((p) => p.includes(weatherLine.slice(0, 12)))) {
-    secondary.push(weatherLine);
-  }
-  if (calendarLine && !parts.some((p) => p.includes("Главное"))) {
-    secondary.push(calendarLine);
-  }
-  if (spaceLine && !parts.some((p) => p.includes("орбит"))) {
-    secondary.push(spaceLine);
-  }
-
-  if (secondary.length > 0) {
-    parts.push(secondary[0]);
-  }
-
-  return parts.slice(0, 3).join(" ");
+  return parts.slice(0, quiet ? 2 : 3).join(" ");
 }
 
 export function buildBriefingPromptLines(
@@ -458,11 +437,19 @@ export function buildBriefingPromptLines(
   availability: BriefingSourceAvailability
 ): string[] {
   const { weather, calendar, space } = sources;
+  const launchCtx = buildLaunchBriefingContext(
+    space,
+    availability.spaceAvailable
+  );
   const lines: string[] = [];
+
+  lines.push(
+    "На дашборде уже видны: панель погоды (слева), календарь (справа), Orbital Operations (пуск внизу). Не дублируй их без действия."
+  );
 
   if (availability.weatherAvailable) {
     lines.push(
-      `Погода: ${weather.temperature}°C, ${weather.description}, осадки ${weather.precipChance}%.`
+      `Погода (на панели): ${weather.temperature}°C, ${weather.description}, осадки ${weather.precipChance}%.`
     );
   } else {
     lines.push(
@@ -471,17 +458,30 @@ export function buildBriefingPromptLines(
   }
 
   if (availability.calendarAvailable) {
+    const tomorrowTime = findTomorrowFirstEventTime(calendar);
     lines.push(
-      `Ближайшее событие: ${calendar.nextEvent ? `${calendar.nextEvent.time} ${calendar.nextEvent.title}` : "нет"}.`
+      calendar.nextEvent
+        ? `Календарь (на панели): ближайшее ${calendar.nextEvent.time} «${calendar.nextEvent.title}».`
+        : "Календарь (на панели): ближайших событий нет."
     );
+    if (tomorrowTime) {
+      lines.push(
+        `Подсказка не на панели: завтра первая встреча в ${tomorrowTime}.`
+      );
+    }
   } else {
     lines.push("Календарь: данные временно недоступны — не выдумывай встречи.");
   }
 
   if (availability.spaceAvailable) {
     lines.push(
-      `Космос: ${space.operator} ${space.mission}, фаза ${space.phase}, отсчёт ${space.countdown}.`
+      `Пуск: ${launchCtx.humanLabel}, фаза ${space.phase}, imminent=${launchCtx.imminent}.`
     );
+    if (!launchCtx.shouldMention) {
+      lines.push(
+        "Пуск далеко — не упоминай или упомяни нейтрально, без срочности."
+      );
+    }
   } else {
     lines.push(
       "Космос: данные о запусках недоступны — не выдумывай пуски."
@@ -497,13 +497,15 @@ export function buildClaudeBriefingPrompt(
   sources: BriefingSources,
   availability: BriefingSourceAvailability
 ): string {
+  const quiet = isQuietDayPart(dayPart);
   return [
     `Ты — Jarvis, лаконичный личный ассистент ${userName}. Сейчас ${getDayPartLabelRu(dayPart)}.`,
-    `Составь ${getBriefingTypeLabel(dayPart)} сводку на РУССКОМ в 2–3 предложения.`,
-    "Тон: спокойный, по делу, без воды.",
-    "Выдели одну главную вещь на сейчас (ближайшая встреча / пуск / погода на выход), а не просто перечисляй.",
+    ...BRIEFING_VOICE_RULES,
+    ...dayPartBehaviorRules(dayPart),
+    quiet
+      ? "Сейчас вечер или ночь — максимум 2 предложения."
+      : "Утро или день — 1–3 предложения.",
     "Используй только данные доступных источников; если источник недоступен — скажи об этом честно.",
-    "Ответ строго на русском языке.",
     "",
     ...buildBriefingPromptLines(sources, availability),
   ].join("\n");
@@ -513,32 +515,22 @@ export function buildAskContextLines(
   sources: BriefingSources,
   availability: BriefingSourceAvailability
 ): string[] {
-  const { weather, calendar, space } = sources;
-  const lines: string[] = [];
+  return buildBriefingPromptLines(sources, availability);
+}
 
-  if (availability.weatherAvailable) {
-    lines.push(`Погода: ${weather.temperature}°C, ${weather.description}.`);
-  } else {
-    lines.push("Погода: данные временно недоступны.");
-  }
-
-  if (availability.calendarAvailable) {
-    lines.push(
-      calendar.nextEvent
-        ? `Ближайшее событие: ${calendar.nextEvent.time} ${calendar.nextEvent.title}.`
-        : "Календарь: ближайших событий нет."
-    );
-  } else {
-    lines.push("Календарь: данные временно недоступны.");
-  }
-
-  if (availability.spaceAvailable) {
-    lines.push(`Космос: ${space.operator} ${space.mission}, ${space.countdown}.`);
-  } else {
-    lines.push("Космос: данные о запусках временно недоступны.");
-  }
-
-  return lines;
+export function buildAskSystemPrompt(
+  userName: string,
+  dayPart: DayPart,
+  contextLines: string[]
+): string {
+  return [
+    `Ты — Jarvis, лаконичный личный ассистент ${userName}. Сейчас ${getDayPartLabelRu(dayPart)}.`,
+    ...BRIEFING_VOICE_RULES,
+    ...dayPartBehaviorRules(dayPart),
+    "Отвечай коротко, по делу, на русском.",
+    "",
+    ...contextLines,
+  ].join("\n");
 }
 
 function pickSourceData<T>(result: SourceResult<T>, fallback: T): T {

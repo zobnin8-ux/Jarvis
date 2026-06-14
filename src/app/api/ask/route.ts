@@ -3,9 +3,12 @@ import type { AskResponseData } from "@/types/modules";
 import { apiSuccess, apiUnavailable } from "@/lib/server/apiResponse";
 import {
   buildAskContextLines,
+  buildAskSystemPrompt,
   gatherBriefingSources,
 } from "@/lib/server/briefingSources";
 import { logError } from "@/lib/server/logger";
+import { resolveDayPart } from "@/lib/daypart";
+import { stripMarkdown } from "@/lib/stripMarkdown";
 
 async function askClaude(
   systemPrompt: string,
@@ -73,17 +76,17 @@ export async function POST(request: Request) {
     return NextResponse.json(apiSuccess(data));
   }
 
-  const { sources, availability } = await gatherBriefingSources();
-  const context = buildAskContextLines(sources, availability).join(" ");
-
-  const systemPrompt = [
-    `Ты — Jarvis, лаконичный личный ассистент ${userName}.`,
-    "Отвечай коротко, по делу, на русском.",
-    context,
-  ].join("\n");
+  const { sources, availability, weatherUtcOffsetSec } =
+    await gatherBriefingSources();
+  const dayPart = resolveDayPart(new Date(), {
+    utcOffsetSec: weatherUtcOffsetSec,
+  });
+  const contextLines = buildAskContextLines(sources, availability);
+  const systemPrompt = buildAskSystemPrompt(userName, dayPart, contextLines);
 
   try {
-    const text = await askClaude(systemPrompt, query, apiKey);
+    const raw = await askClaude(systemPrompt, query, apiKey);
+    const text = stripMarkdown(raw);
     return NextResponse.json(apiSuccess({ text }));
   } catch (err) {
     logError("ask.claude", err);
