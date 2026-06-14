@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAdaptivePoll } from "@/hooks/useAdaptivePoll";
 import { useIntervalFetch } from "@/hooks/useIntervalFetch";
+import { useNightMode } from "@/context/NightModeContext";
 import { fetchIssTelemetry } from "@/services/issTelemetryService";
 import type { IssTelemetryData } from "@/types/modules";
 
@@ -20,6 +21,7 @@ function dataAgeSec(updatedAt: string): number {
 }
 
 export function IssTelemetryModule() {
+  const { isNightMode } = useNightMode();
   const fetcher = useCallback(() => fetchIssTelemetry(), []);
   const poll = useAdaptivePoll("iss", DAY_POLL_MS);
   const { data } = useIntervalFetch({
@@ -31,19 +33,28 @@ export function IssTelemetryModule() {
 
   if (!data) return null;
 
-  return <IssTelemetryPanel data={data} />;
+  return <IssTelemetryPanel data={data} frozen={isNightMode} />;
 }
 
-function IssTelemetryPanel({ data }: { data: IssTelemetryData }) {
+function IssTelemetryPanel({
+  data,
+  frozen = false,
+}: {
+  data: IssTelemetryData;
+  frozen?: boolean;
+}) {
   const [ageSec, setAgeSec] = useState(() => dataAgeSec(data.updatedAt));
 
   useEffect(() => {
-    setAgeSec(dataAgeSec(data.updatedAt));
+    const age = dataAgeSec(data.updatedAt);
+    setAgeSec(age);
+    if (frozen) return;
+
     const id = window.setInterval(() => {
       setAgeSec(dataAgeSec(data.updatedAt));
     }, 1000);
     return () => window.clearInterval(id);
-  }, [data.updatedAt]);
+  }, [data.updatedAt, frozen]);
 
   const speedPct = Math.min(
     100,
@@ -58,7 +69,7 @@ function IssTelemetryPanel({ data }: { data: IssTelemetryData }) {
       <div className="iss-telemetry-head">
         <div className="iss-telemetry-live">
           <span className="iss-telemetry-live-dot" aria-hidden />
-          <span>LIVE POSITION</span>
+          <span>{frozen ? "CACHED POSITION" : "LIVE POSITION"}</span>
         </div>
         <span className="iss-telemetry-id">LEO · NORAD {data.noradId}</span>
         <span
@@ -105,7 +116,9 @@ function IssTelemetryPanel({ data }: { data: IssTelemetryData }) {
             </div>
           </div>
         )}
-        <span className="iss-telemetry-age">Data · {ageSec.toFixed(1)}s ago</span>
+        <span className="iss-telemetry-age">
+          {frozen ? "Snapshot · frozen" : `Data · ${ageSec.toFixed(1)}s ago`}
+        </span>
       </div>
     </div>
   );

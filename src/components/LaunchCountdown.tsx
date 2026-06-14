@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { getCountdownParts, type CountdownParts } from "@/lib/format";
+import { useNightMode } from "@/context/NightModeContext";
 import type { LaunchPhase } from "@/types/modules";
 
 interface LaunchCountdownProps {
@@ -16,6 +17,7 @@ export function LaunchCountdown({
   status,
   phase,
 }: LaunchCountdownProps) {
+  const { isNightMode } = useNightMode();
   const initialMs = useRef<number | null>(null);
   const [parts, setParts] = useState<CountdownParts>(() =>
     getCountdownParts(launchTime)
@@ -26,9 +28,10 @@ export function LaunchCountdown({
 
     const tick = () => setParts(getCountdownParts(launchTime));
     tick();
+    if (isNightMode) return;
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
-  }, [launchTime]);
+  }, [launchTime, isNightMode]);
 
   const progress =
     initialMs.current && initialMs.current > 0
@@ -47,14 +50,23 @@ export function LaunchCountdown({
         animate={{ opacity: 1 }}
         className="launch-liftoff"
       >
-        <motion.div
-          animate={{ opacity: [0.75, 1, 0.75] }}
-          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-          className="font-mono text-3xl tracking-[0.28em] text-secondary md:text-4xl"
-          style={{ textShadow: "0 0 40px rgba(255, 184, 77, 0.35)" }}
-        >
-          LIFTOFF
-        </motion.div>
+        {isNightMode ? (
+          <div
+            className="font-mono text-3xl tracking-[0.28em] text-secondary md:text-4xl"
+            style={{ textShadow: "0 0 40px rgba(255, 184, 77, 0.35)" }}
+          >
+            LIFTOFF
+          </div>
+        ) : (
+          <motion.div
+            animate={{ opacity: [0.75, 1, 0.75] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+            className="font-mono text-3xl tracking-[0.28em] text-secondary md:text-4xl"
+            style={{ textShadow: "0 0 40px rgba(255, 184, 77, 0.35)" }}
+          >
+            LIFTOFF
+          </motion.div>
+        )}
         <div className="mt-2 font-mono text-[0.62rem] tracking-[0.2em] text-white/38 uppercase">
           Awaiting telemetry
         </div>
@@ -84,15 +96,20 @@ export function LaunchCountdown({
         {parts.days > 0 && (
           <>
             <CountdownUnit value={parts.days} label="days" accent={accent} wide />
-            <Separator accent={accent} />
+            <Separator accent={accent} static={isNightMode} />
           </>
         )}
 
         <CountdownUnit value={parts.hours} label="hrs" accent={accent} />
-        <Separator accent={accent} />
+        <Separator accent={accent} static={isNightMode} />
         <CountdownUnit value={parts.minutes} label="min" accent={accent} />
-        <Separator accent={accent} />
-        <CountdownUnit value={parts.seconds} label="sec" accent={accent} pulse />
+        <Separator accent={accent} static={isNightMode} />
+        <CountdownUnit
+          value={parts.seconds}
+          label="sec"
+          accent={accent}
+          pulse={!isNightMode}
+        />
       </div>
 
       <div className="mt-4 h-px w-full overflow-hidden rounded-full bg-white/5">
@@ -164,7 +181,18 @@ function CountdownUnit({
   );
 }
 
-function Separator({ accent }: { accent: string }) {
+function Separator({ accent, static: isStatic = false }: { accent: string; static?: boolean }) {
+  if (isStatic) {
+    return (
+      <span
+        className="mb-5 font-mono text-xl"
+        style={{ color: `${accent}88`, opacity: 0.5 }}
+      >
+        :
+      </span>
+    );
+  }
+
   return (
     <motion.span
       animate={{ opacity: [0.3, 0.7, 0.3] }}

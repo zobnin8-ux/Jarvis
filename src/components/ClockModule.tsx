@@ -6,19 +6,22 @@ import { SystemStatus } from "@/components/SystemStatus";
 import { formatDate, formatTime, getGreeting } from "@/lib/format";
 import { useCoreResonanceVisuals } from "@/hooks/useCoreResonanceVisuals";
 import { useMounted } from "@/hooks/useMounted";
+import { useNightMode } from "@/context/NightModeContext";
 
 const USER_NAME = process.env.NEXT_PUBLIC_USER_NAME ?? "Andrei";
 
 export function ClockModule() {
   const mounted = useMounted();
+  const { isNightMode } = useNightMode();
   const { setStageRef, isPlaying } = useCoreResonanceVisuals();
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     if (!mounted) return;
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    const tickMs = isNightMode ? 60_000 : 1000;
+    const timer = setInterval(() => setNow(new Date()), tickMs);
     return () => clearInterval(timer);
-  }, [mounted]);
+  }, [mounted, isNightMode]);
 
   const [weekday, ...dateParts] = mounted
     ? formatDate(now).split("\n")

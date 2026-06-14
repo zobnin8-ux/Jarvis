@@ -117,17 +117,17 @@ updated: 2026-06-14
 
 **Тумблер:** шапка → «Режим: День / Ночь» · `localStorage`: `jarvis-night-mode`
 
-| Состояние | Опросы | UI |
-|-----------|--------|-----|
-| День | обычные интервалы модулей | все анимации |
-| Ночь, вкладка видна | редкие (`NIGHT_POLL_MS`) | ambient/weather/SV/ISS/calendar pulse off |
-| Ночь, вкладка скрыта | **paused** (0 трафика) | то же + данные из cache |
+| | День | Ночь |
+|---|------|------|
+| API | все модули по таймеру | **0** — только cache |
+| Часы | 1 с | 1 мин |
+| Countdown | 1 с | frozen |
+| Reactor без радио | RAF idle | static |
+| Reactor + радио | full | full |
 
-Интервалы ночью (видимая вкладка): ISS 2 мин · Weather 60 мин · Calendar 30 мин · Briefing 3 ч · Space 60 мин · World News 30 мин · SV 30 мин.
+World News: ротация 10 с off. ISS: **CACHED POSITION**. Циркадная палитра не пересчитывается.
 
-World News: слайды 10 с **не** крутятся ночью. Core Reactor / radio **не** трогаем.
-
-Файлы: `nightMode.ts`, `NightModeContext.tsx`, `useAdaptivePoll.ts`, `NightModeToggle.tsx`, `.command-shell.night-mode` в `globals.css`
+Файлы: `nightMode.ts`, `NightModeContext`, `useAdaptivePoll`, `useCoreResonanceVisuals`, `ClockModule`, `LaunchCountdown`, `globals.css`
 
 ---
 
@@ -237,7 +237,7 @@ npm test         # Vitest
 - Briefing не должен падать, если упала только погода.
 - World News только `lg+`; на телефоне — только Space.
 - Spacedevs 429: один dev, не спамить API; singleflight на briefing+space.
-- Ночь: включить тумблер + свернуть вкладку — минимум нагрузки на API и CPU.
+- Ночь: тумблер в шапке — **нулевой API**, статичный HUD; радио при включении — полный реактор.
 - Ритуал: зарядка **не** генерится Claude — только mood/closing.
 
 ---

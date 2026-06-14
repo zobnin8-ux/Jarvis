@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { getCircadianPalette } from "@/config/theme";
+import { useNightMode } from "@/context/NightModeContext";
 
 const SHELL_VARS = [
   "color-accent",
@@ -35,14 +36,23 @@ function applyPalette(shell: HTMLElement): void {
 }
 
 export function CircadianThemeController() {
+  const { isNightMode } = useNightMode();
+
   useEffect(() => {
     const shell = document.querySelector(".command-shell");
     if (!(shell instanceof HTMLElement)) return;
 
     applyPalette(shell);
+    if (isNightMode) return;
+
     const timer = setInterval(() => applyPalette(shell), 60_000);
+    return () => clearInterval(timer);
+  }, [isNightMode]);
+
+  useEffect(() => {
     return () => {
-      clearInterval(timer);
+      const shell = document.querySelector(".command-shell");
+      if (!(shell instanceof HTMLElement)) return;
       for (const key of SHELL_VARS) {
         shell.style.removeProperty(`--${key}`);
       }

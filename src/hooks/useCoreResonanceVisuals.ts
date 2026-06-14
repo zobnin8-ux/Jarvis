@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { CoreReactorEngine } from "@/lib/coreReactorEngine";
 import { useCoreResonance } from "@/context/CoreResonanceContext";
+import { useNightMode } from "@/context/NightModeContext";
 
 const IDLE_BASE = 0.1;
 const IDLE_SWING = 0.08;
@@ -28,6 +29,7 @@ function applySignals(
 
 export function useCoreResonanceVisuals() {
   const { isPlaying, getAnalyser, station } = useCoreResonance();
+  const { isNightMode } = useNightMode();
   const stageRef = useRef<HTMLDivElement | null>(null);
   const hudRef = useRef<HTMLElement | null>(null);
   const zoneRef = useRef<HTMLElement | null>(null);
@@ -47,6 +49,32 @@ export function useCoreResonanceVisuals() {
   }, [isPlaying]);
 
   useEffect(() => {
+    if (!hudRef.current && stageRef.current) {
+      hudRef.current = stageRef.current.querySelector(".hud-core");
+    }
+
+    const staticIdle = IDLE_BASE.toFixed(4);
+    const idleSignals: Record<string, string> = {
+      "--core-resonance": staticIdle,
+      "--core-live": staticIdle,
+      "--core-volume": staticIdle,
+      "--core-mid": "0",
+      "--core-beat-0": "0",
+      "--core-beat-1": "0",
+      "--core-beat-2": "0",
+      "--core-beat-3": "0",
+      "--core-beat": "0",
+      "--core-warmth": "0",
+    };
+
+    if (isNightMode && !isPlaying) {
+      applySignals(
+        [hudRef.current, stageRef.current, zoneRef.current],
+        idleSignals
+      );
+      return;
+    }
+
     let frame = 0;
     let running = true;
 
@@ -68,10 +96,6 @@ export function useCoreResonanceVisuals() {
         "--core-beat": "0",
         "--core-warmth": "0",
       };
-
-      if (!hudRef.current && stageRef.current) {
-        hudRef.current = stageRef.current.querySelector(".hud-core");
-      }
 
       if (isPlaying && analyser) {
         if (!engineRef.current) {
@@ -106,7 +130,7 @@ export function useCoreResonanceVisuals() {
       running = false;
       cancelAnimationFrame(frame);
     };
-  }, [getAnalyser, isPlaying]);
+  }, [getAnalyser, isPlaying, isNightMode]);
 
   const setStageRef = (node: HTMLDivElement | null) => {
     stageRef.current = node;

@@ -13,7 +13,7 @@ export function NightModeToggle() {
       aria-pressed={isNightMode}
       title={
         isNightMode
-          ? "Ночной режим: реже опросы, анимации приглушены"
+          ? "Ночной режим: без API, статичный HUD; радио — полный реактор"
           : "Дневной режим: обычные обновления"
       }
     >

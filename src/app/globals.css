@@ -2735,7 +2735,11 @@ body {
 }
 
 .command-shell.night-mode .hud-core--idle .core-glow,
-.command-shell.night-mode .hud-core--idle .core-glow-outer {
-  animation-duration: 48s;
+.command-shell.night-mode .hud-core--idle .core-glow-outer,
+.command-shell.night-mode .hud-core--idle .clock-halo,
+.command-shell.night-mode .hud-core--idle .clock-ring-inner,
+.command-shell.night-mode .hud-core--idle .clock-ring-outer,
+.command-shell.night-mode .hud-core--idle .clock-ring-core {
+  animation: none !important;
 }
 

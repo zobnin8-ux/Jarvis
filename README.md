@@ -411,25 +411,22 @@ onFinal (один раз) → /api/ask → speak(text)
 
 ## Ночной режим
 
-Тумблер **«Режим: День / Ночь»** в шапке — для ночной работы с Jarvis на вкладке: меньше сетевых запросов, меньше анимаций, ниже нагрузка на CPU/GPU. Выбор сохраняется в `localStorage` (`jarvis-night-mode`).
+Тумблер **«Режим: День / Ночь»** в шапке — «глубокая» экономия: **нулевой фоновый API**, статичный HUD, минимум CPU. Выбор сохраняется в `localStorage` (`jarvis-night-mode`).
 
-| Модуль | День | Ночь (вкладка видна) | Ночь + вкладка скрыта |
-|--------|------|----------------------|------------------------|
-| ISS | 15 с | 2 мин | **пауза** |
-| Weather | 15 мин | 60 мин | **пауза** |
-| Calendar | 5 мин | 30 мин | **пауза** |
-| Briefing | 1 ч | 3 ч | **пауза** |
-| Space | 30 мин | 60 мин | **пауза** |
-| NASA RSS | 2 ч | 2 ч | **пауза** |
-| World News | 10 мин | 30 мин | **пауза** |
-| SV Ticker | 5 мин | 30 мин | **пауза** |
+| | День | Ночь |
+|---|------|------|
+| **API (все модули)** | по расписанию (ISS 15 с … SV 5 мин) | **paused** — только кэш `jarvis-cache-v2-*` |
+| **Часы** | каждую 1 с | каждую **1 мин** |
+| **Countdown Space** | тик каждую 1 с | **заморожен** |
+| **Core Reactor (без радио)** | RAF ~60 fps, idle-дыхание | **статичный** (без RAF) |
+| **Core Reactor (радио вкл.)** | полный эквалайзер | полный эквалайзер |
+| **CSS-анимации** | все | ambient, weather, SV, ISS pulse — off |
+| **World News** | слайды 10 с | ротация off |
+| **Циркадная тема** | обновление каждые 60 с | заморожена при входе в ночь |
 
-**Поведение UI в ночи:**
-- приглушены ambient-анимации, scanline, weather FX, SV-тикер, ISS pulse, calendar pulse;
-- World News **не** ротирует слайды каждые 10 с;
-- Core Reactor, радио и ambient audio **не** меняются (реактор продолжает «дышать» от радио).
+**Файлы:** `nightMode.ts`, `NightModeContext.tsx`, `useAdaptivePoll.ts`, `useCoreResonanceVisuals.ts`, `ClockModule`, `LaunchCountdown`, `NightModeToggle.tsx`, `.command-shell.night-mode` в `globals.css`.
 
-**Файлы:** `nightMode.ts`, `NightModeContext.tsx`, `useAdaptivePoll.ts`, `NightModeToggle.tsx`, класс `.command-shell.night-mode` в `globals.css`.
+> Для минимального шума вентиляторов: **Ночь** + радио выкл + по возможности `npm run build && npm start` вместо dev.
 
 ---
 
@@ -550,14 +547,15 @@ src/
 - Кэш последнего успешного ответа в `localStorage` (ключи **`jarvis-cache-v2-*`**).
 - Автораспаковка устаревших записей формата `{ ok, data }` (миграция с ранних сборок).
 - Возвращает: `data`, `loading`, `error`, `isStale`, `lastUpdated`, `unavailableService`.
-- Опция `paused: true` — без периодического опроса (ночь + скрытая вкладка); данные из кэша остаются на экране.
+- Опция `paused: true` — без периодического опроса; данные из кэша остаются на экране.
 
 ### Ночной режим (`useAdaptivePoll`)
 
-- Тумблер в шапке → `NightModeContext` → все модули через `useAdaptivePoll(moduleId, dayMs)`.
-- Ночь + **видимая** вкладка: редкие интервалы из `NIGHT_POLL_MS`.
-- Ночь + **скрытая** вкладка: `paused: true` — нулевой фоновый трафик.
-- Анимации UI: CSS-класс `.command-shell.night-mode` (не трогает Core Reactor / radio stack).
+- Тумблер → `NightModeContext` → все модули: **`paused: true`**, нулевой API-трафик.
+- Часы 1/min, countdown и idle-реактор заморожены; при **включённом радио** реактор работает как днём.
+- CSS: `.command-shell.night-mode`.
+
+---
 
 ### Space / Spacedevs
 
@@ -603,7 +601,8 @@ npm test         # Vitest (pure lib)
 | OpenWeather key blocked | Не запускайте несколько dev-серверов; лимит Free — 60 req/min; подождите ~1 ч или смените ключ |
 | Spacedevs 429 (Космос) | Лимит API; подождите 10–30 мин; один dev; после v0.8 briefing+space не бьют API дважды на старте |
 | SSL при `git push` | Windows: временно `GIT_SSL_NO_VERIFY=1` или настроить сертификаты |
-| Вентилятор шумит ночью | Включите **Ночь** в шапке; сверните вкладку — опросы останавливаются |
+| Вентилятор шумит ночью | **Ночь** в шапке + радио выкл; для постоянной ночи — `npm run build && npm start` |
+| Calendar пустой | Расшарить календарь на service account email |
 
 ### Очистка кэша модулей (браузер)
 
