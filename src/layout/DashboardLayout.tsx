@@ -15,6 +15,7 @@ import { THEMES, THEME } from "@/config/theme";
 import { useIdleMode } from "@/hooks/useIdleMode";
 import { useMounted } from "@/hooks/useMounted";
 import { VoiceConsole } from "@/components/VoiceConsole";
+import { MorningRitual } from "@/components/MorningRitual";
 import { WorldNewsModule } from "@/components/WorldNewsModule";
 
 interface DashboardLayoutProps {
@@ -41,7 +42,7 @@ export function DashboardLayout({ futureSlot }: DashboardLayoutProps) {
       >
         <div className="label">Command Center</div>
         <div className="label text-white/25">
-          {THEMES[THEME].label} · v0.6
+          {THEMES[THEME].label} · v0.7
         </div>
       </motion.header>
 
@@ -97,12 +98,12 @@ export function DashboardLayout({ futureSlot }: DashboardLayoutProps) {
         <ModuleErrorBoundary name="Silicon Valley">
           <SiliconValleyModule />
         </ModuleErrorBoundary>
-        <div className="flex items-end justify-between gap-4">
-          <AmbientAudioModule />
-          <div className="flex-1 pb-1 text-center">
-            <div className="text-[10px] tracking-[0.4em] text-white/15 uppercase">
-              Personal Mission Control
-            </div>
+        <div className="footer-controls flex items-end justify-between gap-3 md:gap-4">
+          <div className="flex min-w-0 flex-col gap-2">
+            <AmbientAudioModule />
+            <ModuleErrorBoundary name="Morning Ritual">
+              <MorningRitual />
+            </ModuleErrorBoundary>
           </div>
           <div className="hidden w-[min(100%,280px)] sm:flex sm:justify-end">
             <VoiceConsole />
