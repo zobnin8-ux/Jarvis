@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UseVoiceInputOptions {
   lang?: string;
+  /** Fired once when recognition session ends with the final transcript. */
+  onFinal?: (transcript: string) => void;
 }
 
 interface UseVoiceInputResult {
@@ -19,7 +21,10 @@ type RecognitionInstance = {
   continuous: boolean;
   interimResults: boolean;
   onresult: ((event: {
-    results: { length: number; [index: number]: { [index: number]: { transcript: string } } };
+    results: {
+      length: number;
+      [index: number]: { [index: number]: { transcript: string } };
+    };
   }) => void) | null;
   onerror: (() => void) | null;
   onend: (() => void) | null;
@@ -43,9 +48,14 @@ export function useVoiceInput(
   options: UseVoiceInputOptions = {}
 ): UseVoiceInputResult {
   const lang = options.lang ?? "ru-RU";
+  const onFinalRef = useRef(options.onFinal);
+  onFinalRef.current = options.onFinal;
+
   const [supported, setSupported] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
+  const latestTranscriptRef = useRef("");
+  const deliveredFinalRef = useRef(false);
   const recognitionRef = useRef<RecognitionInstance | null>(null);
 
   useEffect(() => {
@@ -65,7 +75,9 @@ export function useVoiceInput(
       for (let i = 0; i < event.results.length; i++) {
         text += event.results[i][0]?.transcript ?? "";
       }
-      setTranscript(text.trim());
+      const trimmed = text.trim();
+      latestTranscriptRef.current = trimmed;
+      setTranscript(trimmed);
     };
 
     recognition.onerror = () => {
@@ -74,6 +86,11 @@ export function useVoiceInput(
 
     recognition.onend = () => {
       setIsListening(false);
+      if (deliveredFinalRef.current) return;
+      const finalText = latestTranscriptRef.current.trim();
+      if (!finalText) return;
+      deliveredFinalRef.current = true;
+      onFinalRef.current?.(finalText);
     };
 
     recognitionRef.current = recognition;
@@ -88,6 +105,8 @@ export function useVoiceInput(
   const start = useCallback(() => {
     const recognition = recognitionRef.current;
     if (!recognition) return;
+    deliveredFinalRef.current = false;
+    latestTranscriptRef.current = "";
     setTranscript("");
     setIsListening(true);
     try {

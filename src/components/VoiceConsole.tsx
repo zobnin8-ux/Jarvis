@@ -11,29 +11,29 @@ import type { AskResponseData } from "@/types/modules";
 type VoiceConsoleState = "idle" | "listening" | "thinking" | "speaking";
 
 export function VoiceConsole() {
-  const { isListening, transcript, start, stop, supported } = useVoiceInput();
-  const { speak, state: outputState, stop: stopSpeech } = useVoiceOutput();
+  const { speak, stop: stopSpeech } = useVoiceOutput();
   const [consoleState, setConsoleState] = useState<VoiceConsoleState>("idle");
   const [answer, setAnswer] = useState<string | null>(null);
   const [unavailable, setUnavailable] = useState<string | null>(null);
-  const lastQueryRef = useRef("");
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const processingRef = useRef(false);
 
   const processQuery = useCallback(
     async (query: string) => {
-      if (!query.trim()) {
-        setConsoleState("idle");
-        return;
-      }
+      const trimmed = query.trim();
+      if (!trimmed || processingRef.current) return;
 
+      processingRef.current = true;
       setConsoleState("thinking");
       setUnavailable(null);
       setAnswer(null);
+      stopSpeech();
 
       try {
         const response = await fetch("/api/ask", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ query }),
+          body: JSON.stringify({ query: trimmed }),
         });
 
         const json = (await response.json()) as ApiResponse<AskResponseData>;
@@ -57,23 +57,30 @@ export function VoiceConsole() {
       } catch {
         setUnavailable("claude");
         setConsoleState("idle");
+      } finally {
+        processingRef.current = false;
       }
     },
-    [speak]
+    [speak, stopSpeech]
   );
 
-  useEffect(() => {
-    if (!isListening && transcript && transcript !== lastQueryRef.current) {
-      lastQueryRef.current = transcript;
-      void processQuery(transcript);
-    }
-  }, [isListening, transcript, processQuery]);
+  const handleFinalTranscript = useCallback(
+    (text: string) => {
+      setLiveTranscript(text);
+      void processQuery(text);
+    },
+    [processQuery]
+  );
+
+  const { isListening, transcript, start, stop, supported } = useVoiceInput({
+    onFinal: handleFinalTranscript,
+  });
 
   useEffect(() => {
-    if (outputState === "speaking" && consoleState !== "thinking") {
-      setConsoleState("speaking");
+    if (isListening) {
+      setLiveTranscript(transcript);
     }
-  }, [outputState, consoleState]);
+  }, [isListening, transcript]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -88,7 +95,7 @@ export function VoiceConsole() {
         return;
       }
       event.preventDefault();
-      if (!isListening && consoleState !== "thinking") {
+      if (!isListening && !processingRef.current) {
         start();
         setConsoleState("listening");
       }
@@ -105,17 +112,18 @@ export function VoiceConsole() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [consoleState, isListening, start, stop]);
+  }, [isListening, start, stop]);
 
   if (!supported) return null;
 
   const handlePointerDown = () => {
-    if (consoleState === "thinking") return;
+    if (processingRef.current) return;
     stopSpeech();
     start();
     setConsoleState("listening");
     setAnswer(null);
     setUnavailable(null);
+    setLiveTranscript("");
   };
 
   const handlePointerUp = () => {
@@ -142,8 +150,8 @@ export function VoiceConsole() {
         <div className="voice-console-label label">Voice</div>
         <div className="voice-console-state">{stateLabel(consoleState)}</div>
 
-        {isListening && transcript && (
-          <p className="voice-console-transcript">{transcript}</p>
+        {isListening && liveTranscript && (
+          <p className="voice-console-transcript">{liveTranscript}</p>
         )}
 
         {unavailable && (

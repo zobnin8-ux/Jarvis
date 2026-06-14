@@ -5,7 +5,7 @@
 
 **Репозиторий:** [github.com/zobnin8-ux/Jarvis](https://github.com/zobnin8-ux/Jarvis)  
 **Стек:** Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · Framer Motion  
-**Версия UI:** v0.5 (функционально — v0.6+: брифинг, голос, SV-тикер, циркадная тема)
+**Версия UI:** v0.6 — брифинг, голос (ElevenLabs-клон), SV-тикер, циркадная тема, graceful degradation
 
 ---
 
@@ -124,10 +124,18 @@
 | | |
 |---|---|
 | **Ввод** | Web Speech API, push-to-talk, `ru-RU` |
-| **Мозг** | `/api/ask` → Claude |
-| **Озвучка** | `/api/tts` → ElevenLabs (клон) → отдельный `Audio()`; фолбэк — `SpeechSynthesis` |
-| **Управление** | Кнопка ◯ или **удержание пробела** |
+| **Мозг** | `/api/ask` → Claude (+ контекст погода / календарь / космос) |
+| **Озвучка** | `/api/tts` → ElevenLabs (клон) → **отдельный** `new Audio()` |
+| **Фолбэк** | Только если ElevenLabs недоступен — `SpeechSynthesis` (системный голос) |
+| **Управление** | Кнопка ◯ справа в футере или **удержание пробела** |
 | **Браузер** | Chrome / Edge; Firefox — кнопка скрыта (`supported: false`) |
+
+**Важно:** TTS **не** подключён к радио и **не** идёт в AnalyserNode / Core Reactor. Радио и голос — независимые аудио-каналы.
+
+**Защита от двойной озвучки:**
+- Запрос к Claude/TTS отправляется **один раз** за сессию push-to-talk (`onFinal` при `onend` распознавания).
+- Повторный `speak()` отменяет предыдущий (`generationRef`).
+- Перед ElevenLabs всегда вызывается `speechSynthesis.cancel()` — клон и системный голос **не смешиваются**.
 
 ---
 
@@ -338,6 +346,18 @@ Invoke-WebRequest `
 | thinking | «Думаю…» |
 | speaking | «Говорю…» |
 
+### Логика «один голос за раз»
+
+```
+onFinal (один раз) → /api/ask → speak(text)
+                              ↓
+                    ElevenLabs mp3 → Audio.play()
+                              ↓ (только при ошибке API)
+                    SpeechSynthesis (fallback)
+```
+
+Если слышите **два голоса** — обновите код до последней версии и перезапустите dev. Старые сборки могли вызывать `speak()` дважды из-за повторного срабатывания `transcript` после `onend`.
+
 ---
 
 ## API-роуты
@@ -438,7 +458,8 @@ src/
 
 - Retry с backoff: **2 с → 8 с → 30 с** (3 попытки).
 - При ошибке **не затирает** предыдущие `data`.
-- Кэш последнего успешного ответа в `localStorage` (опция `cacheKey`).
+- Кэш последнего успешного ответа в `localStorage` (ключи **`jarvis-cache-v2-*`**).
+- Автораспаковка устаревших записей формата `{ ok, data }` (миграция с ранних сборок).
 - Возвращает: `data`, `loading`, `error`, `isStale`, `lastUpdated`, `unavailableService`.
 
 ### `ModuleErrorBoundary`
@@ -466,12 +487,28 @@ npm run lint     # ESLint
 
 | Симптом | Решение |
 |---------|---------|
+| `MODULE OFFLINE` (Weather / Calendar) | Очистить `localStorage` (`jarvis-cache-*`), Ctrl+Shift+R; обновить до v0.6+ |
+| Все модули Stale / «временно недоступен» | Проверить сеть; перезапустить `npm run dev`; API: `Invoke-RestMethod localhost:3000/api/weather` |
+| Два голоса одновременно | Обновить репо; перезапустить dev — исправлено в `useVoiceOutput` + `onFinal` |
 | `Cannot find module './xxx.js'`, 500 | Остановить dev, удалить `.next`, `npm run dev` |
 | Build + dev одновременно | Не запускать параллельно |
 | Ключи не подхватились | Перезапустить dev после правки `.env.local` |
 | Voice кнопки нет | Firefox — нет Web Speech API; используйте Chrome/Edge |
+| Порт занят / другой порт | Next может стартовать на `:3001` — открывайте URL из терминала |
 | SSL при `git push` | Windows: временно `GIT_SSL_NO_VERIFY=1` или настроить сертификаты |
 | Calendar пустой | Расшарить календарь на service account email |
+
+### Очистка кэша модулей (браузер)
+
+F12 → **Application** → **Local Storage** → ваш `localhost` → удалить ключи `jarvis-cache-*`.
+
+Или в консоли:
+
+```javascript
+Object.keys(localStorage)
+  .filter((k) => k.startsWith("jarvis-cache"))
+  .forEach((k) => localStorage.removeItem(k));
+```
 
 ### Проверка API локально
 
@@ -513,6 +550,16 @@ Invoke-RestMethod http://localhost:3000/api/sv-events
 - Post-launch report держится **12 часов**, затем переключается на **следующий** ближайший пуск из API (не «ваш» Starlink навсегда).
 - Briefing cache in-memory — сбрасывается при рестарте сервера.
 - System Status подписи на английском; плашки недоступности — на русском.
+
+---
+
+## Changelog (кратко)
+
+| Версия | Изменения |
+|--------|-----------|
+| **v0.6** | Исправлен двойной TTS (один `onFinal`, `generationRef`, cancel перед ElevenLabs). Кэш модулей `jarvis-cache-v2-*` + миграция legacy `{ ok, data }`. Защита Weather/Calendar от битого кэша. |
+| **v0.5** | AI Briefing, Voice Console, SV ticker, circadian theme, graceful degradation, ModuleHealth. |
+| **v0.4** | Resilience: retry, stale cache, error boundaries, System Status. |
 
 ---
 
