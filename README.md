@@ -74,7 +74,8 @@
 | **Источник** | OpenWeather (current + forecast + air pollution) |
 | **Refresh** | 15 мин |
 | **Без ключа** | Demo-погода (San Jose по умолчанию) |
-| **UI** | Hero: температура, mood-фон, HUD-иконка; телеметрия: high/low, AQI, восход/закат, таймлайн осадков, 6 ч + 3 дня |
+| **UI** | Hero **3 колонки**: центр — температура + HUD-иконка; **слева** H/L/Feels + восход; **справа** влажность, ветер, осадки, AQI, закат + `WeatherRailIcon`. Без раскрывающейся телеметрии (hourly/daily убраны из панели) |
+| **Файлы** | `WeatherModule.tsx`, `WeatherRailIcon.tsx`, `WeatherHudIcon.tsx`, `weatherMood.ts` |
 
 Координаты: `WEATHER_LAT` / `WEATHER_LON`. Подпись города: `NEXT_PUBLIC_WEATHER_CITY`.
 
@@ -778,7 +779,7 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 
 - World News — только на экранах **lg+** (рядом с Space).
 - Voice Console — Chrome / Edge (Web Speech API).
-- UI погоды в развёрнутой телеметрии — мелковат (запланирован readability pass).
+- UI боковых метрик погоды — **readability pass** (размер/иконки) в roadmap.
 - Post-launch report держится **12 часов**, затем переключается на **следующий** ближайший пуск из API (не «ваш» Starlink навсегда).
 - Briefing cache: память + **`.data/briefing-cache.json`** (переживает рестарт сервера).
 - System Status подписи на английском; плашки недоступности — на русском.
@@ -789,7 +790,7 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 
 | Версия | Изменения |
 |--------|-----------|
-| **v0.8** | Briefing, World News, Audiobooks, **Comms + Gmail**, **briefing disk cache**, audiobook covers, **авто день/ночь**, голос + briefing/ISS, RP album art, deep night, ISS, NASA RSS, singleflight; **ритуал удалён** |
+| **v0.8** | Briefing, World News, Audiobooks, **Comms + Gmail**, **briefing disk cache**, audiobook covers, **weather side rails** (HUD icons), **авто день/ночь**, голос + briefing/ISS, RP album art, deep night, ISS, NASA RSS, singleflight; **ритуал удалён** |
 | **v0.7** | ISS Telemetry (код). NASA RSS в Space. Голос: toggle. Fix приветствия. Удалена карта МКС из Space. |
 | **v0.6** | Исправлен двойной TTS. Кэш модулей `jarvis-cache-v2-*`. **Fix:** бесконечный refetch в `useIntervalFetch` (убивал OpenWeather). Dev-порт **3001**. Серверный кэш погоды 10 мин. |
 | **v0.5** | AI Briefing, Voice Console, SV ticker, circadian theme, graceful degradation, ModuleHealth. |
@@ -800,7 +801,7 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 ## Roadmap
 
 - [ ] ISS telemetry на узких экранах (свёрнутый режим)
-- [ ] Readability pass: weather telemetry, calendar empty states
+- [ ] Readability pass: **weather side rails** (крупнее/чище), calendar empty states
 - [ ] World News в голосовом контексте
 - [ ] Модули: radar, gremlin, notifications
 

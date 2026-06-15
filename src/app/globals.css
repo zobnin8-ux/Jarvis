@@ -1305,13 +1305,92 @@ body {
 .weather-hero {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 0.55rem;
+  align-items: stretch;
+  gap: 0.65rem;
 }
 
 .weather-hero-head {
   width: 100%;
+  text-align: center;
+}
+
+.weather-hero-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
+.weather-hero-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 0;
+}
+
+.weather-hero-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.weather-hero-rail--left {
+  align-items: stretch;
+}
+
+.weather-hero-rail--right {
+  align-items: stretch;
+}
+
+.weather-rail-metric {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
+  line-height: 1.2;
+}
+
+.weather-hero-rail--left .weather-rail-metric {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.weather-hero-rail--right .weather-rail-metric {
+  text-align: left;
+}
+
+.weather-rail-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.weather-rail-icon {
+  flex-shrink: 0;
+  color: color-mix(in srgb, var(--weather-accent) 88%, rgba(214, 228, 245, 0.9));
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--weather-accent) 35%, transparent));
+}
+
+.weather-rail-label {
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(0.58rem, 1.5vw, 0.68rem);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--weather-accent) 55%, rgba(200, 216, 235, 0.65));
+}
+
+.weather-rail-value {
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(0.78rem, 2vw, 0.92rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--weather-accent) 90%, rgba(234, 242, 255, 0.95));
+  text-shadow: 0 0 14px color-mix(in srgb, var(--weather-accent) 28%, transparent);
 }
 
 .weather-hero-core {
@@ -1395,7 +1474,7 @@ body {
 }
 
 .weather-temp {
-  font-size: clamp(3.25rem, 11vw, 4.75rem);
+  font-size: clamp(2.75rem, 9vw, 4.25rem);
   font-weight: 200;
   line-height: 0.9;
   letter-spacing: -0.04em;
@@ -1407,7 +1486,7 @@ body {
 
 .weather-desc {
   margin-top: 0.3rem;
-  font-size: clamp(0.88rem, 2.2vw, 1rem);
+  font-size: clamp(0.78rem, 2vw, 0.92rem);
   font-weight: 300;
   letter-spacing: 0.04em;
   color: rgba(234, 242, 255, 0.72);
@@ -2329,51 +2408,6 @@ body {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(234, 242, 255, 0.28);
-}
-
-/* Weather precip timeline */
-.weather-precip-timeline {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-end;
-  margin-top: 0.5rem;
-}
-
-.weather-precip-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.weather-precip-time {
-  font-family: var(--font-mono), monospace;
-  font-size: 0.58rem;
-  color: rgba(234, 242, 255, 0.38);
-}
-
-.weather-precip-bar-wrap {
-  width: 100%;
-  height: 2.5rem;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background: rgba(85, 214, 255, 0.06);
-  border-radius: 2px;
-}
-
-.weather-precip-bar {
-  width: 60%;
-  min-height: 2px;
-  background: linear-gradient(to top, rgba(85, 214, 255, 0.85), rgba(85, 214, 255, 0.35));
-  border-radius: 2px 2px 0 0;
-}
-
-.weather-precip-pct {
-  font-family: var(--font-mono), monospace;
-  font-size: 0.58rem;
-  color: rgba(85, 214, 255, 0.65);
 }
 
 /* Space ISS pass */

@@ -31,6 +31,7 @@ updated: 2026-06-11
 | Env-шаблон | `.env.example` |
 | Реестр модулей | `src/lib/moduleRegistry.ts` |
 | Брифинг (сервер) | `briefingSources.ts`, `briefingCache.ts`, `briefingDiskCache.ts` |
+| Погода (UI) | `WeatherModule.tsx`, `WeatherRailIcon.tsx` |
 | Comms / Gmail | `CommsModule.tsx`, `comms/MailTab.tsx`, `/api/gmail`, `scripts/gmail-oauth.mjs` |
 | Голос `/api/ask` | тот же кэш briefing + ISS snapshot |
 | Audiobooks | `AudiobooksContext.tsx`, `/api/audiobooks` |
@@ -62,7 +63,7 @@ updated: 2026-06-11
 
 ### Активные
 
-- **Weather** — OpenWeather, mood-фон, demo без ключа
+- **Weather** — OpenWeather, mood-фон; hero **3 колонки** (центр + боковые метрики с `WeatherRailIcon`); без toggle «Atmospheric Data»
 - **Briefing** — Claude + insight-слой, `dayPart`, без markdown → [[#Брифинг v0.8]]
 - **Comms** — вкладки **CALENDAR** | **MAIL · N** (unread badge); OAuth Gmail отдельно от Calendar SA
 - **Space** — The Space Devs, countdown / post-launch / NASA RSS; кэш 15 мин + **singleflight**
@@ -257,7 +258,7 @@ npm test         # Vitest
 
 | Ver | Highlights |
 |-----|------------|
-| **v0.8** | Briefing, World News, Audiobooks, **Comms + Gmail**, **briefing disk cache**, audiobook covers, **авто день/ночь**, голос+briefing/ISS, RP art, deep night, ISS, NASA RSS, singleflight; **ритуал удалён** |
+| **v0.8** | Briefing, World News, Audiobooks, **Comms + Gmail**, disk cache, audiobook covers, **weather side rails**, авто день/ночь, голос+briefing/ISS, RP art, ISS, singleflight; **ритуал удалён** |
 | v0.7 | ISS (код), NASA RSS, voice toggle, убрана карта МКС |
 | v0.6 | Fix двойного TTS, cache v2, порт 3001 |
 | v0.5 | Briefing, Voice, SV ticker, circadian |
@@ -267,7 +268,7 @@ npm test         # Vitest
 ## Roadmap
 
 - [ ] ISS telemetry на узких экранах (свёрнутый режим)
-- [ ] Readability: weather / calendar
+- [ ] Readability: **weather side rails**, calendar
 - [ ] World News в голосовом контексте
 - [ ] radar · gremlin · notifications
 
