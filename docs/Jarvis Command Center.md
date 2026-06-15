@@ -9,16 +9,16 @@ aliases:
   - Jarvis
   - JARVIS
 status: active
-version: v0.8
+version: v0.9
 repo: https://github.com/zobnin8-ux/Jarvis
 stack: Next.js 15 · React 19 · TypeScript
-updated: 2026-06-11
+updated: 2026-06-15
 ---
 
 # Jarvis — Personal Command Center
 
-> Личный HUD-дашборд: погода, **Comms** (календарь + Gmail), космос, AI-брифинг, World News, радио, Audiobooks, голос (**контекст briefing + ISS**) и **авто день/ночь**.  
-> Браузер **Chrome / Edge**, порт dev **3001**.
+> Личный HUD-дашборд: погода, **Comms** (календарь + Gmail + **Tasks**), космос, AI-брифинг, World News, радио, Audiobooks, голос (**briefing + news + mail + ISS**) и **авто день/ночь**.  
+> Запуск: **`Jarvis.lnk`** (launcher) или `npm run dev` · порт **3001** · Chrome / Edge.
 
 ---
 
@@ -32,8 +32,9 @@ updated: 2026-06-11
 | Реестр модулей | `src/lib/moduleRegistry.ts` |
 | Брифинг (сервер) | `briefingSources.ts`, `briefingCache.ts`, `briefingDiskCache.ts` |
 | Погода (UI) | `WeatherModule.tsx`, `WeatherRailIcon.tsx` |
-| Comms / Gmail | `CommsModule.tsx`, `comms/MailTab.tsx`, `/api/gmail`, `scripts/gmail-oauth.mjs` |
-| Голос `/api/ask` | тот же кэш briefing + ISS snapshot |
+| Comms / Gmail / Tasks | `CommsModule.tsx`, `googleTasks.ts`, `scripts/gmail-oauth.mjs` |
+| **Launcher** | `launcher/Jarvis.exe`, `Jarvis.lnk`, `npm run launcher:build` |
+| Голос `/api/ask` | briefing + **World News** + **почта** + ISS; `voiceCommands.ts` |
 | Audiobooks | `AudiobooksContext.tsx`, `/api/audiobooks` |
 | World News (RSS) | `src/config/news.ts` |
 | Space snapshot | `src/lib/server/spaceSnapshot.ts` |
@@ -42,7 +43,19 @@ updated: 2026-06-11
 
 ---
 
-## Схема экрана (v0.8)
+## Запуск (шпаргалка)
+
+| Режим | Действие |
+|-------|----------|
+| **Каждый день** | `D:\Jarvis\Jarvis.lnk` → F11 |
+| После `git pull` | `npm run build` → ярлык |
+| Разработка | `npm run dev` / `npm run dev:clean` |
+| Киоск | `npm run kiosk` |
+| Exe | `npm run launcher:build` |
+
+---
+
+## Схема экрана (v0.9)
 
 ```
 ┌──────────────┬─────────────────────┬──────────────┐
@@ -65,13 +78,13 @@ updated: 2026-06-11
 
 - **Weather** — OpenWeather, mood-фон; hero **3 колонки** (центр + боковые метрики с `WeatherRailIcon`); без toggle «Atmospheric Data»
 - **Briefing** — Claude + insight-слой, `dayPart`, без markdown → [[#Брифинг v0.8]]
-- **Comms** — вкладки **CALENDAR** | **MAIL · N** (unread badge); OAuth Gmail отдельно от Calendar SA
+- **Comms** — CALENDAR (клик по дням недели, **Tasks/reminders**) | **MAIL**
 - **Space** — The Space Devs, countdown / post-launch / NASA RSS; кэш 15 мин + **singleflight**
 - **World News** — BBC, Guardian, RIA, RBC; слайды 10 с, RU/EN
 - **Ambient Audio** — SomaFM + Radio Paradise → **Core Reactor**; **обложка трека** — только RP
 - **ISS Telemetry** — футер (md+), WTIA + geocoding + TLE
 - **Audiobooks** — YouTube «Голос Коваленко», футер **справа** от радио; **обложка 40×40** в мини-плеере; библиотека **draggable**
-- **Voice Console** — toggle + пробел; `/api/ask` (briefing text + ISS + панели) + TTS
+- **Voice Console** — toggle + пробел; `/api/ask` (briefing + **news** + **mail** + ISS); короткие команды; радио по голосу
 - **SV Ticker** — demo events + Finnhub (опц.)
 - **Night Mode** — тумблер в шапке → [[#Ночной режим]]
 
@@ -258,6 +271,7 @@ npm test         # Vitest
 
 | Ver | Highlights |
 |-----|------------|
+| **v0.9** | **Launcher** (Jarvis.exe + ярлык), calendar Tasks + day picker, voice news/mail/radio, weather rails, Устарело, dev:clean/kiosk/PWA, 429 cooldown, tests |
 | **v0.8** | Briefing, World News, Audiobooks, **Comms + Gmail**, disk cache, audiobook covers, **weather side rails**, авто день/ночь, голос+briefing/ISS, RP art, ISS, singleflight; **ритуал удалён** |
 | v0.7 | ISS (код), NASA RSS, voice toggle, убрана карта МКС |
 | v0.6 | Fix двойного TTS, cache v2, порт 3001 |
@@ -268,8 +282,10 @@ npm test         # Vitest
 ## Roadmap
 
 - [ ] ISS telemetry на узких экранах (свёрнутый режим)
-- [ ] Readability: **weather side rails**, calendar
-- [ ] World News в голосовом контексте
+- [x] Readability: weather side rails, calendar day picker
+- [x] World News + почта в голосовом `/api/ask`
+- [x] **Launcher** (`Jarvis.lnk`, `launcher:build`)
+- [x] `dev:clean`, PWA, kiosk, 429 cooldown, тесты sunset/polling
 - [ ] radar · gremlin · notifications
 
 ---
@@ -279,9 +295,11 @@ npm test         # Vitest
 - Demo-режим тихий, если ключ не задан; плашка «недоступен» — только когда ключ есть, API упал.
 - Briefing не должен падать, если упала только погода.
 - World News только `lg+`; на телефоне — только Space.
-- Spacedevs 429: один dev, не спамить API; singleflight на briefing+space.
+- Spacedevs/OpenWeather 429: сервер **15 мин cooldown**, stale из кэша; `npm run kiosk` для постоянной вкладки.
+- **Launcher:** `Jarvis.lnk` в корне — двойной клик, без терминала; Edge/Chrome по умолчанию.
+- PWA: `public/manifest.webmanifest` — Install app (опционально).
 - Ночь: **авто 23–7** или вручную — **нулевой API**, статичный HUD; радио при включении — полный реактор.
-- Голос: `/api/ask` видит текст Briefing и ISS; не выдумывать, если телеметрия недоступна.
+- Голос: `/api/ask` — briefing, World News, почта, ISS; «включи радио».
 - RP Mellow: обложка трека в Ambient Audio.
 - Audiobooks: YT IFrame на `body`; обложка 40×40 в мини-плеере; радио не трогаем.
 - Gmail: OAuth отдельно; `node scripts/gmail-oauth.mjs`; badge скрыт при 0 unread.

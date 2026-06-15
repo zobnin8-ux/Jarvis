@@ -35,7 +35,7 @@ export function BriefingModule() {
         <div className="label">Briefing</div>
         {isStale && (
           <span className="font-mono text-[0.52rem] tracking-[0.14em] text-secondary uppercase">
-            Stale
+            Устарело
           </span>
         )}
       </div>

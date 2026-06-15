@@ -39,3 +39,9 @@ jarvis-command-center-*.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# launcher binary (build locally: npm run launcher:build)
+/launcher/Jarvis.exe
+
+# shortcut at project root (optional local artifact)
+/Jarvis.lnk

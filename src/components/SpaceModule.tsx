@@ -59,7 +59,7 @@ export function SpaceModule() {
         <>
           {launchStale && (
             <div className="mt-3 font-mono text-[0.52rem] tracking-[0.14em] text-secondary uppercase">
-              Launch feed stale
+              Устарело
             </div>
           )}
           <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">

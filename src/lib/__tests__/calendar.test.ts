@@ -5,6 +5,7 @@ import {
   formatDayLabel,
   groupEventsByDay,
   inferEventCategory,
+  mergeTasksIntoWeek,
 } from "@/lib/calendar";
 import type { CalendarEvent } from "@/types/modules";
 
@@ -139,5 +140,34 @@ describe("groupEventsByDay", () => {
 
     const thu = days.find((d) => d.dateKey === "2026-06-12");
     expect(thu?.events[0].isAllDay).toBe(true);
+  });
+});
+
+describe("mergeTasksIntoWeek", () => {
+  it("adds reminders and sorts with events", () => {
+    const weekStart = new Date("2026-06-08T00:00:00");
+    const week = groupEventsByDay(
+      [
+        {
+          summary: "Standup",
+          start: { dateTime: "2026-06-11T09:00:00-07:00" },
+        },
+      ],
+      weekStart
+    );
+
+    const merged = mergeTasksIntoWeek(week, [
+      {
+        id: "t1",
+        title: "Call pharmacy",
+        due: "2026-06-11T17:30:00.000Z",
+      },
+    ]);
+
+    const wed = merged.find((d) => d.dateKey === "2026-06-11");
+    expect(wed?.events).toHaveLength(2);
+    expect(wed?.events[0].title).toBe("Standup");
+    expect(wed?.events[1].category).toBe("reminder");
+    expect(wed?.events[1].title).toBe("Call pharmacy");
   });
 });

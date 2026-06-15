@@ -30,7 +30,7 @@ export interface DailyForecast {
   description: string;
 }
 
-export type CalendarEventCategory = "work" | "call" | "personal" | "other";
+export type CalendarEventCategory = "work" | "call" | "personal" | "reminder" | "other";
 
 export interface CalendarEvent {
   time: string;
@@ -128,7 +128,10 @@ export interface BriefingData {
 
 export interface AskResponseData {
   text: string;
+  actions?: VoiceAction[];
 }
+
+export type VoiceAction = { type: "radio"; command: "play" | "pause" };
 
 export interface SvTickerItem {
   id: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ServiceUnavailablePanel } from "@/components/ui/ServiceUnavailablePanel";
 import { categoryLabel, formatMinutesUntil } from "@/lib/calendar";
 import type {
@@ -24,10 +24,27 @@ export function CalendarTab({
   unavailableService,
 }: CalendarTabProps) {
   const [weekOpen, setWeekOpen] = useState(false);
+  const [selectedDateKey, setSelectedDateKey] = useState("");
 
-  const weekAsideToday = useMemo(
-    () => data?.week?.filter((day) => day.dateKey !== data.today.dateKey) ?? [],
-    [data]
+  useEffect(() => {
+    if (!data) return;
+    const stillInWeek = data.week.some((day) => day.dateKey === selectedDateKey);
+    if (!selectedDateKey || !stillInWeek) {
+      setSelectedDateKey(data.today.dateKey);
+    }
+  }, [data, selectedDateKey]);
+
+  const selectedDay = useMemo(() => {
+    if (!data) return null;
+    return (
+      data.week.find((day) => day.dateKey === selectedDateKey) ?? data.today
+    );
+  }, [data, selectedDateKey]);
+
+  const weekAsideSelected = useMemo(
+    () =>
+      data?.week?.filter((day) => day.dateKey !== selectedDateKey) ?? [],
+    [data, selectedDateKey]
   );
 
   if (unavailableService) {
@@ -46,31 +63,40 @@ export function CalendarTab({
         <div className="comms-tab-meta calendar-month">{data.monthLabel}</div>
       )}
 
-      <WeekStrip days={data.weekStrip} />
+      <WeekStrip
+        days={data.weekStrip}
+        selectedDateKey={selectedDateKey}
+        onSelectDay={setSelectedDateKey}
+      />
       <NextEventBlock next={data.nextEvent} />
 
-      <section className="calendar-today flex-1 min-h-0" aria-label="Today">
-        <div className="calendar-section-label">
-          {data.today.label.toUpperCase()}
-          <span className="calendar-event-count">
-            {data.today.events.length} events
-          </span>
-        </div>
+      {selectedDay && (
+        <section
+          className="calendar-today flex-1 min-h-0"
+          aria-label={selectedDay.label}
+        >
+          <div className="calendar-section-label">
+            {selectedDay.label.toUpperCase()}
+            <span className="calendar-event-count">
+              {selectedDay.events.length} events
+            </span>
+          </div>
 
-        {data.today.events.length === 0 ? (
-          <div className="calendar-empty">Clear schedule</div>
-        ) : (
-          <ul className="calendar-timeline">
-            {data.today.events.map((event, index) => (
-              <TimelineItem
-                key={`${event.startIso}-${event.title}-${index}`}
-                event={event}
-                isNext={data.nextEvent?.startIso === event.startIso}
-              />
-            ))}
-          </ul>
-        )}
-      </section>
+          {selectedDay.events.length === 0 ? (
+            <div className="calendar-empty">Clear schedule</div>
+          ) : (
+            <ul className="calendar-timeline">
+              {selectedDay.events.map((event, index) => (
+                <TimelineItem
+                  key={`${event.startIso}-${event.title}-${index}`}
+                  event={event}
+                  isNext={data.nextEvent?.startIso === event.startIso}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       <div className="calendar-footer mt-auto">
         <button
@@ -99,7 +125,7 @@ export function CalendarTab({
               className="calendar-week overflow-hidden"
             >
               <ul className="calendar-week-list">
-                {weekAsideToday.map((day) => (
+                {weekAsideSelected.map((day) => (
                   <WeekDayRow key={day.dateKey} day={day} />
                 ))}
               </ul>
@@ -111,7 +137,15 @@ export function CalendarTab({
   );
 }
 
-function WeekStrip({ days }: { days: CalendarWeekDay[] }) {
+function WeekStrip({
+  days,
+  selectedDateKey,
+  onSelectDay,
+}: {
+  days: CalendarWeekDay[];
+  selectedDateKey: string;
+  onSelectDay: (dateKey: string) => void;
+}) {
   return (
     <div className="calendar-week-strip" aria-label="Week overview">
       <div className="calendar-week-strip-letters">
@@ -121,16 +155,23 @@ function WeekStrip({ days }: { days: CalendarWeekDay[] }) {
           </div>
         ))}
       </div>
-      <div className="calendar-week-strip-days">
-        {days.map((day) => (
-          <div
-            key={day.dateKey}
-            className={`calendar-strip-cell calendar-strip-day${day.isToday ? " is-today" : ""}`}
-          >
-            <span className="calendar-strip-number">{day.dayNumber}</span>
-            {day.hasEvents && <span className="calendar-strip-dot" aria-hidden />}
-          </div>
-        ))}
+      <div className="calendar-week-strip-days" role="tablist" aria-label="Select day">
+        {days.map((day) => {
+          const isSelected = day.dateKey === selectedDateKey;
+          return (
+            <button
+              key={day.dateKey}
+              type="button"
+              role="tab"
+              aria-selected={isSelected}
+              className={`calendar-strip-cell calendar-strip-day${day.isToday ? " is-today" : ""}${isSelected ? " is-selected" : ""}`}
+              onClick={() => onSelectDay(day.dateKey)}
+            >
+              <span className="calendar-strip-number">{day.dayNumber}</span>
+              {day.hasEvents && <span className="calendar-strip-dot" aria-hidden />}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

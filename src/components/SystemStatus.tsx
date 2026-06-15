@@ -6,7 +6,7 @@ function stateLabel(
   feedId: string,
   state: "online" | "stale" | "offline"
 ): string {
-  if (state === "stale") return "Stale";
+  if (state === "stale") return "Устарело";
   if (state === "offline") return "Offline";
   return feedId === "calendar" ? "Synced" : "Online";
 }

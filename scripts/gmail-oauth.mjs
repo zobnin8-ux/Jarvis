@@ -36,11 +36,33 @@ function loadEnvLocal() {
 
 loadEnvLocal();
 
+function updateEnvLocalRefreshToken(refreshToken) {
+  const file = path.join(ROOT, ".env.local");
+  if (!fs.existsSync(file)) {
+    fs.writeFileSync(file, `GMAIL_REFRESH_TOKEN=${refreshToken}\n`, "utf8");
+    return;
+  }
+  const lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
+  let found = false;
+  const next = lines.map((line) => {
+    if (line.startsWith("GMAIL_REFRESH_TOKEN=")) {
+      found = true;
+      return `GMAIL_REFRESH_TOKEN=${refreshToken}`;
+    }
+    return line;
+  });
+  if (!found) next.push(`GMAIL_REFRESH_TOKEN=${refreshToken}`);
+  fs.writeFileSync(file, next.join("\n"), "utf8");
+}
+
 const CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
 const PORT = 3333;
 const REDIRECT_URI = `http://localhost:${PORT}/oauth2callback`;
-const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"];
+const SCOPES = [
+  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/tasks.readonly",
+];
 
 if (!CLIENT_ID || !CLIENT_SECRET) {
   console.error(
@@ -82,6 +104,8 @@ const server = http.createServer(async (req, res) => {
     console.log("\n--- Add to .env.local ---\n");
     if (tokens.refresh_token) {
       console.log(`GMAIL_REFRESH_TOKEN=${tokens.refresh_token}`);
+      updateEnvLocalRefreshToken(tokens.refresh_token);
+      console.log("Written to .env.local");
     } else {
       console.log("No refresh_token returned. Revoke app access in Google Account");
       console.log("and run again with prompt=consent.");

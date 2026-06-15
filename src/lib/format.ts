@@ -62,11 +62,22 @@ export function formatCountdown(targetIso: string): string {
   return `T-${parts.minutes}m`;
 }
 
+/** OpenWeather unix (UTC) + `timezone` shift (seconds) → local HH:mm for the city. */
 export function formatSunset(timestamp: number, timezoneOffset: number): string {
-  const local = new Date((timestamp + timezoneOffset) * 1000);
-  return local.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  const date = new Date((timestamp + timezoneOffset) * 1000);
+  const h = date.getUTCHours();
+  const m = date.getUTCMinutes();
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/** Display helper — 24h "20:47" → "8:47 PM". */
+export function formatTime12h(time24: string): string {
+  const [hStr, mStr] = time24.split(":");
+  const h = Number(hStr);
+  const m = Number(mStr);
+  if (Number.isNaN(h) || Number.isNaN(m)) return time24;
+
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
 }

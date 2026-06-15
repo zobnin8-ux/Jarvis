@@ -3,10 +3,11 @@
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ServiceUnavailablePanel } from "@/components/ui/ServiceUnavailablePanel";
+import { useCoreResonance } from "@/context/CoreResonanceContext";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { useVoiceOutput } from "@/hooks/useVoiceOutput";
 import { isApiSuccess, isApiUnavailable, type ApiResponse } from "@/types/api";
-import type { AskResponseData } from "@/types/modules";
+import type { AskResponseData, VoiceAction } from "@/types/modules";
 
 type VoiceConsoleState = "idle" | "listening" | "thinking" | "speaking";
 
@@ -30,6 +31,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 export function VoiceConsole() {
   const { speak, stop: stopSpeech } = useVoiceOutput();
+  const { play, pause } = useCoreResonance();
   const [consoleState, setConsoleState] = useState<VoiceConsoleState>("idle");
   const [answer, setAnswer] = useState<string | null>(null);
   const [unavailable, setUnavailable] = useState<string | null>(null);
@@ -76,6 +78,8 @@ export function VoiceConsole() {
           return;
         }
 
+        applyVoiceActions(json.data.actions, { play, pause });
+
         setAnswer(json.data.text);
         setConsoleState("speaking");
         await withTimeout(speak(json.data.text), SPEAK_TIMEOUT_MS);
@@ -87,7 +91,7 @@ export function VoiceConsole() {
         processingRef.current = false;
       }
     },
-    [speak, stopSpeech]
+    [play, pause, speak, stopSpeech]
   );
 
   const handleFinalTranscript = useCallback(
@@ -207,5 +211,19 @@ function stateLabel(state: VoiceConsoleState): string {
       return "Говорю…";
     default:
       return "Готов";
+  }
+}
+
+function applyVoiceActions(
+  actions: VoiceAction[] | undefined,
+  radio: { play: () => void; pause: () => void }
+) {
+  if (!actions?.length) return;
+
+  for (const action of actions) {
+    if (action.type === "radio") {
+      if (action.command === "play") radio.play();
+      if (action.command === "pause") radio.pause();
+    }
   }
 }

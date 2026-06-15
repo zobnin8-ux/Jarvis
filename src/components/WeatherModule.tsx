@@ -10,15 +10,11 @@ import { useIntervalFetch } from "@/hooks/useIntervalFetch";
 import { fetchWeather } from "@/services/weatherService";
 import { getModuleConfig } from "@/lib/moduleRegistry";
 import { getWeatherDayStatus, resolveWeatherMood } from "@/lib/weatherMood";
+import { formatTime12h } from "@/lib/format";
 
 const WEATHER_LOCATION = (
   process.env.NEXT_PUBLIC_WEATHER_CITY ?? "San Jose"
 ).toUpperCase();
-
-function shortAqiLabel(label: string): string {
-  const word = label.trim().split(/\s+/)[0] ?? label;
-  return word.length > 5 ? word.slice(0, 4) : word;
-}
 
 export function WeatherModule() {
   const config = getModuleConfig("weather");
@@ -79,7 +75,11 @@ export function WeatherModule() {
                 <RailMetric icon="high" label="High" value={`${data.highToday}°`} />
                 <RailMetric icon="low" label="Low" value={`${data.lowToday}°`} />
                 <RailMetric icon="feels" label="Feels" value={`${data.feelsLike}°`} />
-                <RailMetric icon="sunrise" label="Sunrise" value={data.sunrise} />
+                <RailMetric
+                  icon="sunrise"
+                  label="Rise"
+                  value={formatTime12h(data.sunrise)}
+                />
               </div>
 
               <div className="weather-hero-center">
@@ -107,10 +107,15 @@ export function WeatherModule() {
                   <RailMetric
                     icon="aqi"
                     label="AQI"
-                    value={`${data.airQuality.aqi} ${shortAqiLabel(data.airQuality.label)}`}
+                    value={String(data.airQuality.aqi)}
+                    title={data.airQuality.label}
                   />
                 )}
-                <RailMetric icon="sunset" label="Sunset" value={data.sunset} />
+                <RailMetric
+                  icon="sunset"
+                  label="Set"
+                  value={formatTime12h(data.sunset)}
+                />
               </div>
             </div>
           </section>
@@ -124,17 +129,21 @@ function RailMetric({
   icon,
   label,
   value,
+  title,
 }: {
   icon: WeatherRailIconId;
   label: string;
   value: string;
+  title?: string;
 }) {
   return (
     <div className="weather-rail-metric">
       <WeatherRailIcon id={icon} />
-      <div className="weather-rail-text">
-        <span className="weather-rail-label">{label}</span>
-        <span className="weather-rail-value">{value}</span>
+      <div className="weather-rail-text" title={title}>
+        <span className="weather-rail-line">
+          <span className="weather-rail-label">{label}</span>
+          <span className="weather-rail-value">{value}</span>
+        </span>
       </div>
     </div>
   );

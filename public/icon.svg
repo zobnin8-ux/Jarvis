@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Jarvis">
+  <rect width="512" height="512" rx="96" fill="#0B0F14"/>
+  <circle cx="256" cy="256" r="148" fill="none" stroke="#55D6FF" stroke-width="10" opacity="0.35"/>
+  <circle cx="256" cy="256" r="108" fill="none" stroke="#A78BFA" stroke-width="8" opacity="0.55"/>
+  <circle cx="256" cy="256" r="36" fill="#55D6FF" opacity="0.9"/>
+</svg>

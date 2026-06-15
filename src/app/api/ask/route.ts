@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { AskResponseData } from "@/types/modules";
+import type { AskResponseData, VoiceAction } from "@/types/modules";
 import { apiSuccess, apiUnavailable } from "@/lib/server/apiResponse";
 import {
   buildFallbackBriefingText,
@@ -10,15 +10,22 @@ import {
   buildAskSystemPrompt,
   gatherBriefingSources,
 } from "@/lib/server/briefingSources";
+import { resolveGmailSnapshot } from "@/lib/server/gmail";
 import { fetchIssTelemetrySnapshot } from "@/lib/server/issTelemetrySnapshot";
 import { logError } from "@/lib/server/logger";
+import { fetchWorldNewsSnapshot } from "@/lib/server/worldNews";
 import { resolveDayPart } from "@/lib/daypart";
 import { stripMarkdown } from "@/lib/stripMarkdown";
+import {
+  detectRadioVoiceAction,
+  isVoiceShortCommand,
+} from "@/lib/voiceCommands";
 
 async function askClaude(
   systemPrompt: string,
   query: string,
-  apiKey: string
+  apiKey: string,
+  maxTokens: number
 ): Promise<string> {
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -29,7 +36,7 @@ async function askClaude(
     },
     body: JSON.stringify({
       model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6",
-      max_tokens: 512,
+      max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: "user", content: query }],
     }),
@@ -87,24 +94,49 @@ export async function POST(request: Request) {
     utcOffsetSec: weatherUtcOffsetSec,
   });
 
-  const [briefingResult, iss] = await Promise.all([
+  const [briefingResult, iss, worldNewsResult, gmailResult] = await Promise.all([
     getBriefingSnapshot(bundle).catch(() => null),
     fetchIssTelemetrySnapshot(),
+    fetchWorldNewsSnapshot(),
+    resolveGmailSnapshot(),
   ]);
 
   const briefingText =
     briefingResult?.text ?? buildFallbackBriefingText(bundle);
 
+  const worldNewsAvailable = worldNewsResult.kind !== "unavailable";
+  const worldNews = worldNewsAvailable ? worldNewsResult.data : null;
+  const gmailAvailable = gmailResult.kind === "live";
+  const gmail = gmailAvailable ? gmailResult.data : null;
+
   const contextLines = buildAskContextLines(sources, availability, {
     briefingText,
     iss,
+    worldNews,
+    worldNewsAvailable,
+    gmail,
+    gmailAvailable,
   });
   const systemPrompt = buildAskSystemPrompt(userName, dayPart, contextLines);
+  const shortCommand = isVoiceShortCommand(query);
 
   try {
-    const raw = await askClaude(systemPrompt, query, apiKey);
+    const raw = await askClaude(
+      systemPrompt,
+      query,
+      apiKey,
+      shortCommand ? 128 : 512
+    );
     const text = stripMarkdown(raw);
-    return NextResponse.json(apiSuccess({ text }));
+
+    const actions: VoiceAction[] = [];
+    const radioAction = detectRadioVoiceAction(query);
+    if (radioAction) {
+      actions.push({ type: "radio", command: radioAction });
+    }
+
+    const data: AskResponseData = actions.length > 0 ? { text, actions } : { text };
+    return NextResponse.json(apiSuccess(data));
   } catch (err) {
     logError("ask.claude", err);
     return NextResponse.json(apiUnavailable("claude"));

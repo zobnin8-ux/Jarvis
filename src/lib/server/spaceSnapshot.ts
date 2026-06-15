@@ -8,6 +8,9 @@ import {
   type SpacedevsLaunch,
 } from "@/lib/spaceLaunch";
 import { logError } from "@/lib/server/logger";
+import {
+  rateLimitCooldownMs,
+} from "@/lib/server/upstreamCooldown";
 
 async function fetchLaunchById(id: string): Promise<SpacedevsLaunch | null> {
   try {
@@ -87,7 +90,11 @@ async function refreshSpaceCache(): Promise<SpaceLaunch> {
     return launch;
   } catch (err) {
     logError("space.snapshot", err);
-    if (spaceCache) return spaceCache.data;
+    if (spaceCache) {
+      spaceCache.expiresAt =
+        Date.now() + rateLimitCooldownMs(err, SPACE_CACHE_TTL_MS);
+      return spaceCache.data;
+    }
     throw err;
   }
 }
@@ -105,5 +112,13 @@ export async function fetchCachedSpaceLaunch(): Promise<SpaceLaunch> {
     });
   }
 
-  return inflightFetch;
+  try {
+    return await inflightFetch;
+  } catch (err) {
+    if (spaceCache) {
+      logError("space.snapshot.fallback", err);
+      return spaceCache.data;
+    }
+    throw err;
+  }
 }

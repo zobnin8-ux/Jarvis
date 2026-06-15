@@ -44,6 +44,8 @@ export function categoryLabel(category: CalendarEventCategory): string | null {
       return "Call";
     case "personal":
       return "Personal";
+    case "reminder":
+      return "Reminder";
     default:
       return null;
   }
@@ -235,6 +237,84 @@ export function groupEventsByDay(
         item.description,
         item.location
       ),
+    });
+  }
+
+  for (const day of days) {
+    day.events.sort((a, b) => {
+      if (a.isAllDay && !b.isAllDay) return -1;
+      if (!a.isAllDay && b.isAllDay) return 1;
+      return new Date(a.startIso).getTime() - new Date(b.startIso).getTime();
+    });
+  }
+
+  return days;
+}
+
+export interface CalendarTaskDue {
+  id: string;
+  title: string;
+  due: string;
+}
+
+function parseTaskDue(due: string): {
+  dateKey: string;
+  isAllDay: boolean;
+  startIso: string;
+  timeLabel: string;
+} {
+  const isDateOnly = !due.includes("T");
+  if (isDateOnly) {
+    const dateKey = due.slice(0, 10);
+    return {
+      dateKey,
+      isAllDay: true,
+      startIso: `${dateKey}T00:00:00`,
+      timeLabel: "All day",
+    };
+  }
+
+  const startDate = new Date(due);
+  const dateKey = dateKeyFromDate(startDate);
+  return {
+    dateKey,
+    isAllDay: false,
+    startIso: startDate.toISOString(),
+    timeLabel: startDate.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }),
+  };
+}
+
+/** Merge Google Tasks (due dates) into an existing week from Calendar events. */
+export function mergeTasksIntoWeek(
+  week: CalendarDay[],
+  tasks: CalendarTaskDue[]
+): CalendarDay[] {
+  const days = week.map((day) => ({
+    ...day,
+    events: [...day.events],
+  }));
+  const dayMap = new Map(days.map((day) => [day.dateKey, day]));
+  const seen = new Set<string>();
+
+  for (const task of tasks) {
+    const parsed = parseTaskDue(task.due);
+    const bucket = dayMap.get(parsed.dateKey);
+    if (!bucket) continue;
+
+    const dedupeKey = `${task.id}-${parsed.startIso}`;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+
+    bucket.events.push({
+      time: parsed.timeLabel,
+      title: task.title,
+      isAllDay: parsed.isAllDay,
+      category: "reminder",
+      startIso: parsed.startIso,
     });
   }
 

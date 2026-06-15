@@ -6,7 +6,7 @@
 **Репозиторий:** [github.com/zobnin8-ux/Jarvis](https://github.com/zobnin8-ux/Jarvis)  
 **Obsidian:** [docs/Jarvis Command Center.md](docs/Jarvis%20Command%20Center.md) — краткая заметка для vault  
 **Стек:** Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · Framer Motion  
-**Версия UI:** v0.8 — insight-брифинг (+ **диск-кэш**), World News, Audiobooks (**обложки**), **Comms** (Calendar + Gmail), **авто день/ночь**, ISS telemetry, голос (briefing + ISS), RP album art, SV-тикер, циркадная тема
+**Версия UI:** v0.9 — launcher (ярлык без терминала), календарь+Tasks, голос (news/mail/radio), kiosk/PWA, weather rails, **Устарело**, 429 cooldown
 
 ---
 
@@ -196,7 +196,7 @@
 | | |
 |---|---|
 | **Ввод** | Web Speech API, **toggle** (клик или пробел), `ru-RU` |
-| **Мозг** | `/api/ask` → Claude + контекст: погода, календарь, космос, **текст Briefing**, **ISS** |
+| **Мозг** | `/api/ask` → Claude + контекст: погода, календарь, космос, **Briefing**, **World News**, **почта**, **ISS** |
 | **Озвучка** | `/api/tts` → ElevenLabs (клон) → **отдельный** `new Audio()` |
 | **Фолбэк** | Только если ElevenLabs недоступен — `SpeechSynthesis` (системный голос) |
 | **Управление** | Кнопка ◯ справа в футере: **пробел — начать · пробел — отправить** |
@@ -204,6 +204,8 @@
 | **Env** | `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` — после смены голоса **перезапустите** `npm run dev` |
 
 **Важно:** TTS **не** подключён к радио и **не** идёт в AnalyserNode / Core Reactor. Радио и голос — независимые аудио-каналы.
+
+**Короткие команды (1–2 предложения):** «какая погода», «что в мире?», «есть что срочное?», «включи радио» (радио включается на клиенте).
 
 **Защита от двойной озвучки:**
 - Запрос к Claude/TTS отправляется **один раз** за сессию (по toggle off / второму нажатию пробела).
@@ -242,19 +244,30 @@ cp .env.example .env.local
 
 ### Запуск
 
-```bash
-# Разработка
-npm run dev
+**Ежедневно (без терминала):**
 
-# Production-сборка
-npm run build
-npm start
+1. Один раз: `npm run build` → `npm run launcher:build` → `npm run launcher:shortcut`
+2. Двойной клик **`D:\Jarvis\Jarvis.lnk`** (или `launcher\Jarvis.exe`) → откроется браузер по умолчанию
+3. **F11** — полный экран
+
+После `git pull` с изменениями кода: снова `npm run build`, затем ярлык.
+
+**Разработка:**
+
+```bash
+npm run dev          # hot reload
+npm run dev:clean    # kill :3001, удалить .next, dev (лечит 500)
+npm run kiosk        # build + start — тихий режим для постоянной вкладки
 ```
 
-Откройте [http://localhost:3001](http://localhost:3001).  
-F11 — полноэкранный режим браузера.
+```bash
+npm run build
+npm start            # production вручную (если без launcher)
+```
 
-> После изменения `.env.local` **перезапустите** `npm run dev`.
+Откройте [http://localhost:3001](http://localhost:3001).
+
+> После изменения `.env.local` **перезапустите** сервер (`npm run dev` или ярлык после `build`).
 
 ---
 
@@ -693,7 +706,7 @@ src/
 
 **Операционка (не код):** после `.env.local` — перезапуск dev; Gmail API включить в GCP; при 403 — проверить Client ID (типичная опечатка в середине строки).
 
-**В очереди (не сделано):** тесты на polling; глобальный cooldown после 429; PWA + автозапуск `npm start` для второго монитора.
+**Сделано:** тесты `formatSunset` + polling policy; cooldown **15 мин** после 429 (Space + OpenWeather); PWA manifest; `npm run dev:clean` + `npm run kiosk`.
 
 ---
 
@@ -702,12 +715,44 @@ src/
 ### Скрипты
 
 ```bash
-npm run dev      # localhost:3001, hot reload
-npm run build    # production build + typecheck
-npm run start    # serve после build
-npm run lint     # ESLint
-npm test         # Vitest (pure lib)
+npm run dev        # localhost:3001, hot reload (разработка)
+npm run dev:clean  # kill :3001, удалить .next, старт dev (лечит 500)
+npm run build      # production build + typecheck
+npm run start      # serve после build
+npm run kiosk      # build + start — тихий режим для постоянной вкладки
+npm run launcher:build     # собрать launcher/Jarvis.exe
+npm run launcher:shortcut  # Jarvis.lnk в корне проекта
+npm run lint       # ESLint
+npm test           # Vitest (pure lib)
 ```
+
+### Launcher (ярлык без терминала)
+
+| Файл | Назначение |
+|------|------------|
+| `launcher/Jarvis.exe` | Стартует `npm start` скрыто + открывает браузер |
+| `Jarvis.lnk` (корень) | Ярлык для двойного клика — **основной способ запуска** |
+| `launcher/Start-Jarvis.ps1` | Исходник PowerShell |
+| `launcher/Jarvis.vbs` | Fallback без exe |
+
+Сборка: `npm run launcher:build` (нужен интернет, `pkg`). Ярлык: `npm run launcher:shortcut`.  
+Если Desktop через OneDrive не принимает ярлык — перетащи `D:\Jarvis\Jarvis.lnk` на рабочий стол вручную.
+
+### Режим киоска (внешний монитор / крышка ноута закрыта)
+
+Для **фонового HUD** на втором экране (или единственном внешнем) — без HMR и лишней нагрузки на CPU:
+
+```bash
+npm run kiosk
+```
+
+Сервер крутится в терминале; в Chrome на внешнем мониторе открой `http://localhost:3001`.
+
+**PWA (без полос Chrome):** Chrome → меню **Установить Jarvis** / **Install app** (или «Добавить на рабочий стол»). Открой установленное приложение на весь экран (`F11`).
+
+**Windows:** при закрытой крышке ноута — в питании: «При закрытии крышки» → **Ничего не делать** (от сети), иначе Jarvis уснёт.
+
+Для правок кода — снова `npm run dev` или `npm run dev:clean`.
 
 ### Типичные проблемы
 
@@ -716,16 +761,16 @@ npm test         # Vitest (pure lib)
 | `MODULE OFFLINE` (Weather / Calendar) | Очистить `localStorage` (`jarvis-cache-*`), Ctrl+Shift+R; обновить до v0.6+ |
 | Все модули Stale / «временно недоступен» | Проверить сеть; перезапустить `npm run dev`; API: `Invoke-RestMethod localhost:3001/api/weather` |
 | Два голоса одновременно | Обновить репо; перезапустить dev — исправлено в `useVoiceOutput` + `onFinal` |
-| `Internal Server Error` на `/` | Остановить все `npm run dev`, удалить `.next`, запустить **один** dev на `:3001` |
+| `Internal Server Error` на `/` | `npm run dev:clean` (или вручную: kill `:3001`, удалить `.next`, один dev) |
 | ISS telemetry не видна | Блок скрыт на узких экранах (`<768px`); расширьте окно |
 | Build + dev одновременно | Не запускать параллельно |
 | Ключи не подхватились | Перезапустить dev после правки `.env.local` |
 | Voice кнопки нет | Firefox — нет Web Speech API; используйте Chrome/Edge |
 | Порт занят | Убедитесь, что не запущено несколько `npm run dev`; Jarvis по умолчанию на `:3001` |
 | OpenWeather key blocked | Не запускайте несколько dev-серверов; лимит Free — 60 req/min; подождите ~1 ч или смените ключ |
-| Spacedevs 429 (Космос) | Лимит API; подождите 10–30 мин; один dev; после v0.8 briefing+space не бьют API дважды на старте |
+| Spacedevs 429 (Космос) | Сервер молчит **15 мин**, отдаёт stale; подождите или `npm run kiosk` вместо dev |
 | SSL при `git push` | Windows: временно `GIT_SSL_NO_VERIFY=1` или настроить сертификаты |
-| Вентилятор шумит ночью | **Ночь** в шапке + радио выкл; для постоянной ночи — `npm run build && npm start` |
+| Вентилятор шумит ночью | **Ночь** в шапке + радио выкл; для постоянной вкладки — `npm run kiosk` |
 | Calendar пустой | Расшарить календарь на service account email |
 
 ### Очистка кэша модулей (браузер)
@@ -779,7 +824,8 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 
 - World News — только на экранах **lg+** (рядом с Space).
 - Voice Console — Chrome / Edge (Web Speech API).
-- UI боковых метрик погоды — **readability pass** (размер/иконки) в roadmap.
+- UI боковых метрик погоды — one-line rails, AQI цифрой, sunset 12h (v0.9).
+- Ярлык на Desktop через OneDrive (кириллица) может не создаваться автоматически — drag `Jarvis.lnk` вручную.
 - Post-launch report держится **12 часов**, затем переключается на **следующий** ближайший пуск из API (не «ваш» Starlink навсегда).
 - Briefing cache: память + **`.data/briefing-cache.json`** (переживает рестарт сервера).
 - System Status подписи на английском; плашки недоступности — на русском.
@@ -790,6 +836,7 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 
 | Версия | Изменения |
 |--------|-----------|
+| **v0.9** | **Launcher** (`Jarvis.exe` + ярлык), календарь **Tasks/reminders** + клик по дням, голос (**World News**, почта, короткие команды, радио), weather rails (AQI/12h), **Устарело**, `dev:clean` / `kiosk`, PWA manifest, 429 cooldown 15 мин, тесты sunset/polling |
 | **v0.8** | Briefing, World News, Audiobooks, **Comms + Gmail**, **briefing disk cache**, audiobook covers, **weather side rails** (HUD icons), **авто день/ночь**, голос + briefing/ISS, RP album art, deep night, ISS, NASA RSS, singleflight; **ритуал удалён** |
 | **v0.7** | ISS Telemetry (код). NASA RSS в Space. Голос: toggle. Fix приветствия. Удалена карта МКС из Space. |
 | **v0.6** | Исправлен двойной TTS. Кэш модулей `jarvis-cache-v2-*`. **Fix:** бесконечный refetch в `useIntervalFetch` (убивал OpenWeather). Dev-порт **3001**. Серверный кэш погоды 10 мин. |
@@ -801,8 +848,9 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 ## Roadmap
 
 - [ ] ISS telemetry на узких экранах (свёрнутый режим)
-- [ ] Readability pass: **weather side rails** (крупнее/чище), calendar empty states
-- [ ] World News в голосовом контексте
+- [x] Readability: weather side rails, calendar day picker
+- [x] World News + почта в голосовом `/api/ask`
+- [x] Launcher, kiosk, dev:clean, PWA, 429 cooldown
 - [ ] Модули: radar, gremlin, notifications
 
 ---

@@ -1,6 +1,6 @@
 import { google, type gmail_v1 } from "googleapis";
 import type { GmailData, GmailMessage } from "@/types/modules";
-import { loadGoogleOAuthWebCredentials } from "@/lib/server/googleOAuthCredentials";
+import { createGoogleOAuth2Client } from "@/lib/server/googleOAuthClient";
 import { logError } from "@/lib/server/logger";
 
 const INBOX_QUERY = "is:unread in:inbox";
@@ -15,15 +15,9 @@ export function isGmailConfigured(): boolean {
 }
 
 function createGmailClient(): gmail_v1.Gmail | null {
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-  const refreshToken = process.env.GMAIL_REFRESH_TOKEN;
-
-  if (!clientId || !clientSecret || !refreshToken) return null;
-
-  const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
-  oauth2.setCredentials({ refresh_token: refreshToken });
-  return google.gmail({ version: "v1", auth: oauth2 });
+  const auth = createGoogleOAuth2Client();
+  if (!auth) return null;
+  return google.gmail({ version: "v1", auth });
 }
 
 function formatFromHeader(raw: string): string {

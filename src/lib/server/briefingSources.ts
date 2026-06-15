@@ -1,8 +1,10 @@
 import type {
   CalendarData,
+  GmailData,
   IssTelemetryData,
   SpaceLaunch,
   WeatherData,
+  WorldNewsData,
 } from "@/types/modules";
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -13,18 +15,22 @@ import {
   findNextEvent,
   getWeekBounds,
   groupEventsByDay,
+  mergeTasksIntoWeek,
 } from "@/lib/calendar";
+import { fetchDueTasksInRange } from "@/lib/server/googleTasks";
 import { aqiLabel } from "@/lib/aqi";
 import { formatSunset } from "@/lib/format";
 import { buildDailyForecast, getTodayPrecipChance } from "@/lib/weather";
 import { fetchCachedSpaceLaunch } from "@/lib/server/spaceSnapshot";
 import { logError } from "@/lib/server/logger";
+import { rateLimitCooldownMs } from "@/lib/server/upstreamCooldown";
 import {
   type DayPart,
   getDayPartGreeting,
   getDayPartLabelRu,
 } from "@/lib/daypart";
 import {
+  ASK_VOICE_RULES,
   BRIEFING_VOICE_RULES,
   buildLaunchBriefingContext,
   dayPartBehaviorRules,
@@ -115,6 +121,12 @@ async function fetchLiveWeather(): Promise<WeatherData> {
   const forecast = await forecastRes.json();
   const now = Date.now();
 
+  const timezone = forecast.city?.timezone ?? current.timezone ?? 0;
+  lastWeatherUtcOffsetSec = timezone;
+
+  const formatLocalTime = (dtSeconds: number) =>
+    formatSunset(dtSeconds, timezone);
+
   const hourly = forecast.list
     .filter((item: { dt: number }) => item.dt * 1000 > now)
     .slice(0, 6)
@@ -125,19 +137,13 @@ async function fetchLiveWeather(): Promise<WeatherData> {
         main: { temp: number };
         weather: { icon: string }[];
       }) => ({
-        time: new Date(item.dt * 1000).toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }),
+        time: formatLocalTime(item.dt),
         temperature: Math.round(item.main.temp),
         icon: item.weather[0]?.icon ?? "01d",
         precipChance: Math.round((item.pop ?? 0) * 100),
       })
     );
 
-  const timezone = forecast.city?.timezone ?? current.timezone ?? 0;
-  lastWeatherUtcOffsetSec = timezone;
   const daily = buildDailyForecast(forecast.list, timezone, 3);
   const today = daily.find((d) => d.day === "Today") ?? daily[0];
 
@@ -160,8 +166,8 @@ async function fetchLiveWeather(): Promise<WeatherData> {
     icon: current.weather[0]?.icon ?? "01d",
     humidity: current.main.humidity,
     windSpeed: current.wind?.speed ?? 0,
-    sunrise: formatSunset(current.sys.sunrise, current.timezone),
-    sunset: formatSunset(current.sys.sunset, current.timezone),
+    sunrise: formatSunset(current.sys.sunrise, timezone),
+    sunset: formatSunset(current.sys.sunset, timezone),
     airQuality,
     hourly,
     daily,
@@ -193,6 +199,8 @@ export async function resolveWeatherSnapshot(): Promise<SourceResult<WeatherData
   } catch (err) {
     logError("briefing.weather", err);
     if (weatherCache) {
+      weatherCache.expiresAt =
+        Date.now() + rateLimitCooldownMs(err, WEATHER_CACHE_TTL_MS);
       return { kind: "live", data: weatherCache.data };
     }
     return { kind: "unavailable" };
@@ -274,10 +282,21 @@ function buildDemoCalendarSnapshot(): CalendarData {
   );
   add(now.getDay(), 14, 0, "Weekly Planning", "work");
 
-  return finalizeCalendarWeek(
-    week.map((day) => dayMap.get(day.dateKey) ?? day),
-    now
-  );
+  const weekDays = week.map((day) => dayMap.get(day.dateKey) ?? day);
+  const withReminders = mergeTasksIntoWeek(weekDays, [
+    {
+      id: "demo-reminder-1",
+      title: "Call pharmacy",
+      due: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 17, 30).toISOString(),
+    },
+    {
+      id: "demo-reminder-2",
+      title: "Pick up dry cleaning",
+      due: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 10, 0).toISOString(),
+    },
+  ]);
+
+  return finalizeCalendarWeek(withReminders, now);
 }
 
 async function fetchLiveCalendar(): Promise<CalendarData> {
@@ -304,7 +323,11 @@ async function fetchLiveCalendar(): Promise<CalendarData> {
     orderBy: "startTime",
   });
 
-  const week = groupEventsByDay(response.data.items ?? [], start);
+  let week = groupEventsByDay(response.data.items ?? [], start);
+  const tasks = await fetchDueTasksInRange(start, end);
+  if (tasks.length > 0) {
+    week = mergeTasksIntoWeek(week, tasks);
+  }
   return finalizeCalendarWeek(week, now);
 }
 
@@ -512,6 +535,64 @@ export function buildClaudeBriefingPrompt(
   ].join("\n");
 }
 
+export interface AskContextExtras {
+  briefingText?: string | null;
+  iss?: IssTelemetryData | null;
+  worldNews?: WorldNewsData | null;
+  worldNewsAvailable?: boolean;
+  gmail?: GmailData | null;
+  gmailAvailable?: boolean;
+}
+
+function buildWorldNewsAskLines(
+  data: WorldNewsData | null | undefined,
+  available: boolean
+): string[] {
+  if (!available || !data?.headlines.length) {
+    return [
+      "World News: заголовки временно недоступны — не выдумывай мировые новости.",
+    ];
+  }
+
+  const block = data.headlines
+    .slice(0, 6)
+    .map((h) => `[${h.sourceLabel}] ${h.title}`)
+    .join(" · ");
+
+  return [
+    `World News (один блок контекста): ${block}`,
+    "На «что в мире?» / «новости» — 2–3 главные темы по этим заголовкам, без длинного пересказа.",
+  ];
+}
+
+function buildGmailAskLines(
+  data: GmailData | null | undefined,
+  available: boolean
+): string[] {
+  if (!available || !data) {
+    return [
+      "Почта: данные недоступны — не выдумывай письма и срочность.",
+    ];
+  }
+
+  if (data.unreadCount === 0) {
+    return [
+      "Почта: непрочитанных нет.",
+      "На «есть что срочное?» — скажи, что срочного ничего.",
+    ];
+  }
+
+  const previews = data.messages
+    .slice(0, 5)
+    .map((m) => `«${m.subject}» (${m.from})`)
+    .join("; ");
+
+  return [
+    `Почта: ${data.unreadCount} непрочитанных в инбоксе. В списке: ${previews}.`,
+    "На «есть что срочное?» — оцени по отправителю и теме; назови максимум 1–2 важных, без перечисления всей почты.",
+  ];
+}
+
 export function buildAskContextLines(
   sources: BriefingSources,
   availability: BriefingSourceAvailability,
@@ -526,14 +607,15 @@ export function buildAskContextLines(
     );
   }
 
+  lines.push(
+    ...buildWorldNewsAskLines(extras?.worldNews, extras?.worldNewsAvailable ?? false)
+  );
+  lines.push(
+    ...buildGmailAskLines(extras?.gmail, extras?.gmailAvailable ?? false)
+  );
   lines.push(...buildIssContextLines(extras?.iss ?? null));
 
   return lines;
-}
-
-export interface AskContextExtras {
-  briefingText?: string | null;
-  iss?: IssTelemetryData | null;
 }
 
 function buildIssContextLines(iss: IssTelemetryData | null): string[] {
@@ -560,6 +642,7 @@ export function buildAskSystemPrompt(
   return [
     `Ты — Jarvis, лаконичный личный ассистент ${userName}. Сейчас ${getDayPartLabelRu(dayPart)}.`,
     ...BRIEFING_VOICE_RULES,
+    ...ASK_VOICE_RULES,
     ...dayPartBehaviorRules(dayPart),
     "Отвечай коротко, по делу, на русском.",
     "Отвечай на конкретный вопрос; не перечисляй весь дашборд без запроса.",
