@@ -1016,6 +1016,33 @@ body {
   box-shadow: 0 0 6px color-mix(in srgb, var(--color-accent) 50%, transparent);
 }
 
+.ambient-audio-now-playing {
+  margin-top: 0.4rem;
+}
+
+.ambient-audio-now-playing.has-cover {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.ambient-audio-cover {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 0.3rem;
+  object-fit: cover;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 12%, transparent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.ambient-audio-now-playing.has-cover .ambient-audio-track {
+  margin-top: 0;
+  flex: 1;
+  min-width: 0;
+}
+
 .ambient-audio-track {
   margin-top: 0.4rem;
   font-size: 0.65rem;
@@ -1024,6 +1051,10 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.ambient-audio-now-playing:not(.has-cover) .ambient-audio-track {
+  margin-top: 0;
 }
 
 .ambient-audio-select {

@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import type { AskResponseData } from "@/types/modules";
 import { apiSuccess, apiUnavailable } from "@/lib/server/apiResponse";
 import {
+  buildFallbackBriefingText,
+  getBriefingSnapshot,
+} from "@/lib/server/briefingCache";
+import {
   buildAskContextLines,
   buildAskSystemPrompt,
   gatherBriefingSources,
 } from "@/lib/server/briefingSources";
+import { fetchIssTelemetrySnapshot } from "@/lib/server/issTelemetrySnapshot";
 import { logError } from "@/lib/server/logger";
 import { resolveDayPart } from "@/lib/daypart";
 import { stripMarkdown } from "@/lib/stripMarkdown";
@@ -76,12 +81,24 @@ export async function POST(request: Request) {
     return NextResponse.json(apiSuccess(data));
   }
 
-  const { sources, availability, weatherUtcOffsetSec } =
-    await gatherBriefingSources();
+  const bundle = await gatherBriefingSources();
+  const { sources, availability, weatherUtcOffsetSec } = bundle;
   const dayPart = resolveDayPart(new Date(), {
     utcOffsetSec: weatherUtcOffsetSec,
   });
-  const contextLines = buildAskContextLines(sources, availability);
+
+  const [briefingResult, iss] = await Promise.all([
+    getBriefingSnapshot(bundle).catch(() => null),
+    fetchIssTelemetrySnapshot(),
+  ]);
+
+  const briefingText =
+    briefingResult?.text ?? buildFallbackBriefingText(bundle);
+
+  const contextLines = buildAskContextLines(sources, availability, {
+    briefingText,
+    iss,
+  });
   const systemPrompt = buildAskSystemPrompt(userName, dayPart, contextLines);
 
   try {

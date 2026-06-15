@@ -27,6 +27,7 @@ interface CoreResonanceContextValue {
   stations: RadioStation[];
   isPlaying: boolean;
   track: string | null;
+  trackCoverUrl: string | null;
   play: () => void;
   pause: () => void;
   setStation: (station: RadioStation) => void;
@@ -58,6 +59,7 @@ export function CoreResonanceProvider({ children }: { children: ReactNode }) {
   const [station, setStationState] = useState<RadioStation>(RADIO_STATIONS[0]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [track, setTrack] = useState<string | null>(null);
+  const [trackCoverUrl, setTrackCoverUrl] = useState<string | null>(null);
 
   const coreMode: CoreMode = isPlaying ? "active" : "idle";
 
@@ -136,6 +138,7 @@ export function CoreResonanceProvider({ children }: { children: ReactNode }) {
   const loadMetadata = useCallback(async (stationId: string) => {
     const data = await fetchRadioMetadata(stationId);
     setTrack(data.track);
+    setTrackCoverUrl(data.coverUrl ?? null);
   }, []);
 
   const playStream = useCallback(
@@ -176,6 +179,7 @@ export function CoreResonanceProvider({ children }: { children: ReactNode }) {
     (next: RadioStation) => {
       setStationState(next);
       setTrack(null);
+      setTrackCoverUrl(null);
       persist(next, isPlaying);
 
       if (isPlaying) {
@@ -234,6 +238,7 @@ export function CoreResonanceProvider({ children }: { children: ReactNode }) {
         stations: RADIO_STATIONS,
         isPlaying,
         track,
+        trackCoverUrl,
         play,
         pause,
         setStation,

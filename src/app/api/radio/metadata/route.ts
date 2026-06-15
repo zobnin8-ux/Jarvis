@@ -49,10 +49,20 @@ export async function GET(request: Request) {
         return NextResponse.json({ track: null });
       }
 
+      const coverUrl =
+        typeof data?.cover_small === "string"
+          ? data.cover_small
+          : typeof data?.cover_med === "string"
+            ? data.cover_med
+            : typeof data?.cover === "string"
+              ? data.cover
+              : null;
+
       return NextResponse.json({
-        track: artist,
+        track: `${artist} — ${title}`,
         artist,
         title,
+        coverUrl,
       });
     }
 

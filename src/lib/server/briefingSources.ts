@@ -1,5 +1,6 @@
 import type {
   CalendarData,
+  IssTelemetryData,
   SpaceLaunch,
   WeatherData,
 } from "@/types/modules";
@@ -513,9 +514,42 @@ export function buildClaudeBriefingPrompt(
 
 export function buildAskContextLines(
   sources: BriefingSources,
-  availability: BriefingSourceAvailability
+  availability: BriefingSourceAvailability,
+  extras?: AskContextExtras
 ): string[] {
-  return buildBriefingPromptLines(sources, availability);
+  const lines = buildBriefingPromptLines(sources, availability);
+
+  if (extras?.briefingText) {
+    lines.push(
+      `Сводка на панели Briefing (уже показана пользователю): «${extras.briefingText}»`,
+      "Если спрашивают об общей картине дня — опирайся на эту сводку и не противоречь ей."
+    );
+  }
+
+  lines.push(...buildIssContextLines(extras?.iss ?? null));
+
+  return lines;
+}
+
+export interface AskContextExtras {
+  briefingText?: string | null;
+  iss?: IssTelemetryData | null;
+}
+
+function buildIssContextLines(iss: IssTelemetryData | null): string[] {
+  if (!iss) {
+    return [
+      "ISS (футер): телеметрия временно недоступна — не выдумывай положение станции.",
+    ];
+  }
+
+  const visibility =
+    iss.visibility === "eclipsed" ? "в тени Земли" : "на солнечной стороне";
+
+  return [
+    `ISS (футер): над ${iss.locationLabel}, ~${Math.round(iss.altitudeKm)} км, ${iss.velocityKms.toFixed(1)} км/с, ${visibility}.`,
+    "Если спрашивают про МКС/ISS — отвечай по этим данным.",
+  ];
 }
 
 export function buildAskSystemPrompt(
@@ -528,6 +562,7 @@ export function buildAskSystemPrompt(
     ...BRIEFING_VOICE_RULES,
     ...dayPartBehaviorRules(dayPart),
     "Отвечай коротко, по делу, на русском.",
+    "Отвечай на конкретный вопрос; не перечисляй весь дашборд без запроса.",
     "",
     ...contextLines,
   ].join("\n");

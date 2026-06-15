@@ -2,6 +2,8 @@ export interface RadioMetadata {
   track: string | null;
   artist?: string;
   title?: string;
+  /** Radio Paradise only */
+  coverUrl?: string | null;
 }
 
 export async function fetchRadioMetadata(stationId: string): Promise<RadioMetadata> {

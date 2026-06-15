@@ -3,8 +3,16 @@
 import { useRadioPlayer } from "@/hooks/useRadioPlayer";
 
 export function AmbientAudioModule() {
-  const { station, stations, isPlaying, track, play, pause, setStation } =
-    useRadioPlayer();
+  const {
+    station,
+    stations,
+    isPlaying,
+    track,
+    trackCoverUrl,
+    play,
+    pause,
+    setStation,
+  } = useRadioPlayer();
 
   return (
     <div className="ambient-audio footer-audio-unit">
@@ -28,8 +36,23 @@ export function AmbientAudioModule() {
       </div>
 
       {track && (
-        <div className="ambient-audio-track" title={track}>
-          {track}
+        <div
+          className={`ambient-audio-now-playing${trackCoverUrl ? " has-cover" : ""}`}
+        >
+          {trackCoverUrl && (
+            <img
+              className="ambient-audio-cover"
+              src={trackCoverUrl}
+              alt=""
+              width={40}
+              height={40}
+              loading="lazy"
+              decoding="async"
+            />
+          )}
+          <div className="ambient-audio-track" title={track}>
+            {track}
+          </div>
         </div>
       )}
 
