@@ -6,7 +6,7 @@
 **Репозиторий:** [github.com/zobnin8-ux/Jarvis](https://github.com/zobnin8-ux/Jarvis)  
 **Obsidian:** [docs/Jarvis Command Center.md](docs/Jarvis%20Command%20Center.md) — краткая заметка для vault  
 **Стек:** Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · Framer Motion  
-**Версия UI:** v0.8 — insight-брифинг, World News, Audiobooks, **авто день/ночь**, ISS telemetry, голос (briefing + ISS в контексте), RP album art, SV-тикер, циркадная тема
+**Версия UI:** v0.8 — insight-брифинг (+ **диск-кэш**), World News, Audiobooks (**обложки**), **Comms** (Calendar + Gmail), **авто день/ночь**, ISS telemetry, голос (briefing + ISS), RP album art, SV-тикер, циркадная тема
 
 ---
 
@@ -37,7 +37,7 @@
 ┌────────────────────────────────────────────────────────────────┐
 │  Command Center                          [Режим: День/Ночь] v0.8 │
 ├─────────────────┬────────────────────────────┬─────────────────┤
-│    WEATHER      │      CLOCK + CORE          │    CALENDAR     │
+│    WEATHER      │      CLOCK + CORE          │  COMMS (Cal/Mail)│
 │  (атмосфера)    │   HUD-кольца, эквалайзер   │  week / NEXT    │
 │                 │   System Status            │  timeline       │
 │    BRIEFING     │                            │                 │
@@ -84,11 +84,12 @@
 |---|---|
 | **Источник** | Claude (`claude-sonnet-4-6`) + контекст: погода, календарь, космос |
 | **Refresh** | 1 ч; серверный кэш — 3 ч (инвалидируется при смене `dayPart`) |
+| **Диск-кэш** | `.data/briefing-cache.json` — переживает рестарт dev/start, экономит Claude |
 | **Без `ANTHROPIC_API_KEY`** | Шаблонный demo-брифинг из тех же данных |
 | **Расположение** | Левая колонка, под Weather |
 | **Формат** | Русский plain text, **без markdown**; 1–3 предложения (ночью ≤ 2) |
 | **Логика** | «Слой смысла» — не дублирует панели; срочность пуска только при `imminent` (< 2 ч или liftoff); советы «на выход/зонт» только утром/днём |
-| **Файлы** | `briefingSources.ts`, `briefingContext.ts`, `stripMarkdown.ts`, `daypart.ts` |
+| **Файлы** | `briefingSources.ts`, `briefingCache.ts`, `briefingDiskCache.ts`, `briefingContext.ts`, `stripMarkdown.ts`, `daypart.ts` |
 
 Часовой пояс брифинга: `BRIEFING_TZ` (напр. `America/Los_Angeles`) или offset из OpenWeather.
 
@@ -102,6 +103,26 @@
 | **Ключи** | Не нужны |
 | **UI** | Заголовок по центру блока, line-clamp 3, ссылка в новую вкладку |
 | **Файлы** | `WorldNewsModule.tsx`, `worldNews.ts`, `/api/world-news` |
+
+### Calendar + Mail (Comms)
+
+Правая колонка — панель **Comms** с вкладками **CALENDAR** (по умолчанию) и **MAIL**.
+
+| | |
+|---|---|
+| **Mail badge** | Unread в INBOX; скрыт при 0; `99+` cap |
+| **Список** | До 7 unread; клик → Gmail thread |
+| **Refresh** | 5 мин; ночью — кэш |
+| **Без OAuth** | Demo inbox (2 письма) |
+| **Файлы** | `CommsModule.tsx`, `comms/MailTab.tsx`, `/api/gmail`, `gmail.ts` |
+
+**Gmail ≠ Calendar keys:** календарь — Service Account JSON; почта — **OAuth 2.0** (личный `@gmail.com`).
+
+| Переменная | Описание |
+|------------|----------|
+| `GOOGLE_OAUTH_CLIENT_ID` | OAuth Client ID (Web) |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | OAuth secret |
+| `GMAIL_REFRESH_TOKEN` | Refresh token после `node scripts/gmail-oauth.mjs` |
 
 ### Calendar
 
@@ -152,7 +173,7 @@
 |---|---|
 | **Станции** | SomaFM: Groove Salad, Drone Zone, Deep Space One; Radio Paradise Mellow |
 | **Метаданные** | `/api/radio/metadata` — track / artist; **обложка** — только Radio Paradise |
-| **UI** | RP: миниатюра 40×40 + `Artist — Title` |
+| **UI** | RP: миниатюра 40×40 + `Artist — Title`; Audiobooks: обложка 40×40 в мини-плеере |
 | **Связь с ядром** | `<audio>` + Web Audio AnalyserNode → Core Reactor |
 
 ### Audiobooks (YouTube)
@@ -166,6 +187,7 @@
 | **Resume** | `localStorage` `jarvis-audiobook-progress` |
 | **Радио** | Не затрагивается |
 | **Env** | `YOUTUBE_API_KEY`, `YOUTUBE_CHANNEL_ID` |
+| **UI** | Обложка 40×40 в мини-плеере (как RP); resume — thumbnail из `localStorage` |
 | **Файлы** | `AudiobookPlayer.tsx`, `AudiobooksContext.tsx`, `/api/audiobooks` |
 
 ### Voice Console (голос)
@@ -288,6 +310,16 @@ F11 — полноэкранный режим браузера.
 |------------|-------------|----------|
 | `FINNHUB_API_KEY` | нет | [Finnhub](https://finnhub.io) — живые котировки; без ключа — demo |
 
+### Серверные — Gmail (OAuth)
+
+| Переменная | Обязательно | Описание |
+|------------|-------------|----------|
+| `GOOGLE_OAUTH_CLIENT_ID` | нет* | OAuth Client ID (Web application) |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | нет* | OAuth secret |
+| `GMAIL_REFRESH_TOKEN` | нет* | Refresh token после `node scripts/gmail-oauth.mjs` |
+
+\* Без OAuth — demo inbox (2 письма). **Не путать** с Service Account календаря.
+
 ### Серверные — Audiobooks (YouTube)
 
 | Переменная | Обязательно | Описание |
@@ -324,6 +356,10 @@ ELEVENLABS_VOICE_ID=...
 
 YOUTUBE_API_KEY=...
 YOUTUBE_CHANNEL_ID=UCY-ekT04DX2bQhzYvm2y5Lw
+
+GOOGLE_OAUTH_CLIENT_ID=....apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=...
+GMAIL_REFRESH_TOKEN=...
 
 # NEXT_PUBLIC_NIGHT_START_HOUR=23
 # NEXT_PUBLIC_NIGHT_END_HOUR=7
@@ -365,6 +401,16 @@ FINNHUB_API_KEY=...
 2. APIs & Services → Enable **Google Calendar API**.
 3. Credentials → Service Account → Create key (JSON).
 4. Расшарить календарь на `client_email` из JSON.
+
+### Gmail (личный inbox)
+1. Тот же или отдельный проект в Google Cloud.
+2. Enable **Gmail API** в APIs & Services.
+3. Credentials → **OAuth client ID** → Web application → redirect `http://localhost:3333/oauth2callback`.
+4. `GOOGLE_OAUTH_CLIENT_ID` + `GOOGLE_OAUTH_CLIENT_SECRET` в `.env.local`.
+5. `node scripts/gmail-oauth.mjs` → скопировать `GMAIL_REFRESH_TOKEN`.
+6. Перезапустить `npm run dev`.
+
+Календарь и почта — **разные** типы доступа (Service Account vs OAuth).
 
 ---
 
@@ -478,6 +524,7 @@ onFinal (один раз) → /api/ask → speak(text)
 |-------|------|----------|
 | GET | `/api/weather` | `WeatherData` |
 | GET | `/api/calendar` | `CalendarData` |
+| GET | `/api/gmail` | `GmailData` (unread + messages) |
 | GET | `/api/space` | `SpaceLaunch` |
 | GET | `/api/world-news` | `WorldNewsData` (RSS headlines) |
 | GET | `/api/nasa-news` | Последний заголовок NASA RSS |
@@ -502,6 +549,7 @@ src/
 │   ├── api/              # Серверные роуты (ключи только здесь)
 │   │   ├── weather/
 │   │   ├── calendar/
+│   │   ├── gmail/
 │   │   ├── space/
 │   │   ├── nasa-news/
 │   │   ├── world-news/
@@ -536,7 +584,7 @@ src/
 ├── layout/
 │   └── DashboardLayout.tsx
 ├── lib/
-│   ├── server/           # briefingSources, briefingCache, worldNews, spaceSnapshot, …
+│   ├── server/           # briefingSources, briefingCache, briefingDiskCache, worldNews, spaceSnapshot, gmail, …
 │   ├── briefingContext.ts, stripMarkdown.ts, daypart.ts, nightSchedule.ts
 │   ├── client/           # apiFetch + ServiceUnavailableError
 │   ├── calendar.ts, weather.ts, spaceLaunch.ts, …
@@ -614,6 +662,37 @@ src/
 ### System Status
 
 Точки online / stale / offline для: Weather, Calendar, Space Feed, Briefing.
+
+### Briefing — диск-кэш (экономия Claude)
+
+- Файл: **`.data/briefing-cache.json`** (в `.gitignore`).
+- Порядок: память → диск → Claude.
+- TTL **3 ч** + инвалидация при смене `dayPart` (утро/день/вечер/ночь).
+- Общий кэш для `/api/briefing` и голоса `/api/ask`.
+- Сброс вручную: удалить `.data/briefing-cache.json`.
+
+### Журнал правок надёжности (память)
+
+Зафиксированные исправления v0.6–v0.8 — чтобы не повторять старые ошибки:
+
+| # | Проблема | Исправление |
+|---|----------|-------------|
+| 1 | `useIntervalFetch` сразу refetch после успеха → сотни req/min, бан OpenWeather | Интервал соблюдается; retry **2→8→30 с** (3×); stale не затирает `data` |
+| 2 | Несколько `npm run dev` + `build` параллельно с dev | **Один** процесс на **`:3001`**; не мешать `npm run build` и dev — битый `.next` → 500 `Cannot find module './NNN.js'` |
+| 3 | Space polling 90 с + нет серверного кэша → Spacedevs **429** | Клиент **30 мин**; сервер **15 мин** + **singleflight** (briefing + space = один upstream) |
+| 4 | OpenWeather: 1 `/api/weather` = 3 upstream-вызова | Серверный кэш **10 мин**; один dev |
+| 5 | Рестарт сервера → новый вызов Claude | **Диск-кэш** briefing в `.data/` |
+| 6 | Двойная озвучка (ElevenLabs + системный голос) | `onFinal` один раз; `generationRef`; `speechSynthesis.cancel()` перед TTS |
+| 7 | API упал, но в `localStorage` есть данные | Stale на экране + плашка; не пустой модуль |
+| 8 | Ночной шум API / вентилятор | **Авто 23:00–07:00** или **Ночь** → `paused: true`, только кэш |
+| 9 | Падение одного модуля роняло UI | `ModuleErrorBoundary` → «MODULE OFFLINE» |
+| 10 | Comms / Gmail | Тот же `useIntervalFetch` + night pause; OAuth **отдельно** от Calendar SA |
+| 11 | YT IFrame внутри React → `removeChild` / мигание при HMR | Контейнер на `document.body`, singleton без `destroy()` при remount |
+| 12 | Запись `.data/briefing-cache.json` триггерит dev HMR | `next.config` — `watchOptions.ignored: **/.data/**` |
+
+**Операционка (не код):** после `.env.local` — перезапуск dev; Gmail API включить в GCP; при 403 — проверить Client ID (типичная опечатка в середине строки).
+
+**В очереди (не сделано):** тесты на polling; глобальный cooldown после 429; PWA + автозапуск `npm start` для второго монитора.
 
 ---
 
@@ -701,7 +780,7 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 - Voice Console — Chrome / Edge (Web Speech API).
 - UI погоды в развёрнутой телеметрии — мелковат (запланирован readability pass).
 - Post-launch report держится **12 часов**, затем переключается на **следующий** ближайший пуск из API (не «ваш» Starlink навсегда).
-- Briefing cache in-memory (`briefingCache.ts`) — сбрасывается при рестарте сервера.
+- Briefing cache: память + **`.data/briefing-cache.json`** (переживает рестарт сервера).
 - System Status подписи на английском; плашки недоступности — на русском.
 
 ---
@@ -710,7 +789,7 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 
 | Версия | Изменения |
 |--------|-----------|
-| **v0.8** | Briefing, World News, Audiobooks, **авто день/ночь**, голос + briefing/ISS, RP album art, deep night, ISS в футере, NASA RSS, singleflight; **ритуал удалён** |
+| **v0.8** | Briefing, World News, Audiobooks, **Comms + Gmail**, **briefing disk cache**, audiobook covers, **авто день/ночь**, голос + briefing/ISS, RP album art, deep night, ISS, NASA RSS, singleflight; **ритуал удалён** |
 | **v0.7** | ISS Telemetry (код). NASA RSS в Space. Голос: toggle. Fix приветствия. Удалена карта МКС из Space. |
 | **v0.6** | Исправлен двойной TTS. Кэш модулей `jarvis-cache-v2-*`. **Fix:** бесконечный refetch в `useIntervalFetch` (убивал OpenWeather). Dev-порт **3001**. Серверный кэш погоды 10 мин. |
 | **v0.5** | AI Briefing, Voice Console, SV ticker, circadian theme, graceful degradation, ModuleHealth. |

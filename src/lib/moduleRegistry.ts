@@ -9,6 +9,7 @@ const FUTURE_MODULES: ModuleId[] = [
 export const ACTIVE_MODULES: ModuleConfig[] = [
   { id: "weather", enabled: true, refreshInterval: 15 * 60 * 1000 },
   { id: "calendar", enabled: true, refreshInterval: 5 * 60 * 1000 },
+  { id: "gmail", enabled: true, refreshInterval: 5 * 60 * 1000 },
   { id: "clock", enabled: true },
   { id: "space", enabled: true, refreshInterval: 30 * 60 * 1000 },
   { id: "world-news", enabled: true, refreshInterval: 10 * 60 * 1000 },

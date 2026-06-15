@@ -47,6 +47,9 @@ export function AudiobookPlayer() {
 
   const title = getNowPlayingTitle();
   const showResume = !current && pendingResume && !unavailableService;
+  const coverUrl =
+    current?.thumbnailUrl ??
+    (showResume ? pendingResume?.thumbnailUrl : undefined);
 
   if (unavailableService) {
     return (
@@ -91,23 +94,38 @@ export function AudiobookPlayer() {
           </div>
         </div>
 
-        {current || title ? (
-          <div className="audiobook-player-title" title={title}>
-            {title || "—"}
-          </div>
-        ) : showResume ? (
-          <button
-            type="button"
-            className="audiobook-player-title audiobook-player-resume"
-            onClick={resumeLast}
-          >
-            продолжить: {pendingResume!.title}
-          </button>
-        ) : (
-          <div className="audiobook-player-title audiobook-player-invite">
-            Выберите книгу
-          </div>
-        )}
+        <div
+          className={`audiobook-player-now-playing${coverUrl ? " has-cover" : ""}`}
+        >
+          {coverUrl && (
+            <img
+              className="audiobook-player-cover"
+              src={coverUrl}
+              alt=""
+              width={40}
+              height={40}
+              loading="lazy"
+              decoding="async"
+            />
+          )}
+          {current || title ? (
+            <div className="audiobook-player-title" title={title}>
+              {title || "—"}
+            </div>
+          ) : showResume ? (
+            <button
+              type="button"
+              className="audiobook-player-title audiobook-player-resume"
+              onClick={resumeLast}
+            >
+              продолжить: {pendingResume!.title}
+            </button>
+          ) : (
+            <div className="audiobook-player-title audiobook-player-invite">
+              Выберите книгу
+            </div>
+          )}
+        </div>
 
         <div className="audiobook-player-status">
           <span

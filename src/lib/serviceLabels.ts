@@ -3,6 +3,7 @@ import type { ExternalServiceId } from "@/types/api";
 const SERVICE_LABELS: Record<ExternalServiceId, string> = {
   openweather: "Погода",
   "google-calendar": "Календарь",
+  gmail: "Почта",
   spacedevs: "Космос",
   claude: "Брифинг",
   elevenlabs: "Озвучка",
@@ -17,6 +18,9 @@ export function serviceUnavailableMessage(service: string): string {
   }
   if (service === "youtube") {
     return "Библиотека временно недоступна";
+  }
+  if (service === "gmail") {
+    return "Почта временно недоступна";
   }
   const label =
     SERVICE_LABELS[service as ExternalServiceId] ?? "Сервис";

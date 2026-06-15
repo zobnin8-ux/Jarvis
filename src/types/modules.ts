@@ -170,9 +170,30 @@ export interface AudiobookData {
   items: AudiobookItem[];
 }
 
+export interface GmailMessage {
+  id: string;
+  threadId: string;
+  from: string;
+  fromRaw: string;
+  subject: string;
+  snippet: string;
+  time: string;
+  internalDate: number;
+  unread: boolean;
+  webUrl: string;
+}
+
+export interface GmailData {
+  unreadCount: number;
+  messages: GmailMessage[];
+  generatedAt: string;
+  demo?: boolean;
+}
+
 export type ModuleId =
   | "weather"
   | "calendar"
+  | "gmail"
   | "clock"
   | "space"
   | "world-news"

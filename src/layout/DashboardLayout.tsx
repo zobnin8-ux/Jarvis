@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { AmbientBackground } from "@/components/background/AmbientBackground";
 import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
 import { WeatherModule } from "@/components/WeatherModule";
-import { CalendarModule } from "@/components/CalendarModule";
+import { CommsModule } from "@/components/CommsModule";
 import { ClockModule } from "@/components/ClockModule";
 import { SpaceModule } from "@/components/SpaceModule";
 import { BriefingModule } from "@/components/BriefingModule";
@@ -76,8 +76,8 @@ export function DashboardLayout({ futureSlot }: DashboardLayoutProps) {
         </div>
 
         <div className="zone-side zone-side-right min-h-[200px] lg:col-span-3 lg:row-start-1">
-          <ModuleErrorBoundary name="Calendar">
-            <CalendarModule />
+          <ModuleErrorBoundary name="Comms">
+            <CommsModule />
           </ModuleErrorBoundary>
         </div>
 

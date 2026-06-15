@@ -1,5 +1,5 @@
 import type { BriefingData } from "@/types/modules";
-import { resolveDayPart, type DayPart } from "@/lib/daypart";
+import { resolveDayPart } from "@/lib/daypart";
 import { stripMarkdown } from "@/lib/stripMarkdown";
 import { logError } from "@/lib/server/logger";
 import {
@@ -9,10 +9,20 @@ import {
   type BriefingSourcesBundle,
 } from "@/lib/server/briefingSources";
 
+import {
+  readBriefingDiskCache,
+  writeBriefingDiskCache,
+  type BriefingCacheEntry,
+} from "@/lib/server/briefingDiskCache";
+
 const CACHE_TTL_MS = 3 * 60 * 60 * 1000;
 
-let cache: { data: BriefingData; expiresAt: number; dayPart: DayPart } | null =
-  null;
+let cache: BriefingCacheEntry | null = null;
+
+function storeCache(entry: BriefingCacheEntry) {
+  cache = entry;
+  void writeBriefingDiskCache(entry);
+}
 
 async function generateWithClaude(
   prompt: string,
@@ -60,6 +70,12 @@ export async function getBriefingSnapshot(
     return cache.data;
   }
 
+  const diskEntry = await readBriefingDiskCache(now, dayPart);
+  if (diskEntry) {
+    cache = diskEntry;
+    return diskEntry.data;
+  }
+
   const userName = process.env.NEXT_PUBLIC_USER_NAME ?? "Andrei";
   const generatedAt = new Date().toISOString();
   const { weather, calendar, space } = sources;
@@ -77,7 +93,12 @@ export async function getBriefingSnapshot(
       ),
       generatedAt,
     };
-    cache = { data, expiresAt: now + CACHE_TTL_MS, dayPart };
+    const entry: BriefingCacheEntry = {
+      data,
+      expiresAt: now + CACHE_TTL_MS,
+      dayPart,
+    };
+    storeCache(entry);
     return data;
   }
 
@@ -92,7 +113,7 @@ export async function getBriefingSnapshot(
     text: stripMarkdown(raw),
     generatedAt,
   };
-  cache = { data, expiresAt: now + CACHE_TTL_MS, dayPart };
+  storeCache({ data, expiresAt: now + CACHE_TTL_MS, dayPart });
   return data;
 }
 

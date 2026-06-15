@@ -2,6 +2,7 @@ export type NightPollModuleId =
   | "iss"
   | "weather"
   | "calendar"
+  | "gmail"
   | "briefing"
   | "space"
   | "worldNews"

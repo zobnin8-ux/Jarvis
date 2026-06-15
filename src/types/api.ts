@@ -1,6 +1,7 @@
 export type ExternalServiceId =
   | "openweather"
   | "google-calendar"
+  | "gmail"
   | "spacedevs"
   | "claude"
   | "elevenlabs"

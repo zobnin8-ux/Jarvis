@@ -21,6 +21,28 @@ import type { AudiobookItem } from "@/types/modules";
 
 const PLAYER_ELEMENT_ID = "jarvis-youtube-player-host";
 
+/** Survives React Strict Mode / Fast Refresh — YT mutates the host DOM. */
+let sharedPlayer: YT.Player | null = null;
+let sharedHost: HTMLDivElement | null = null;
+
+function ensurePlayerHost(): HTMLDivElement {
+  if (sharedHost?.isConnected) return sharedHost;
+
+  const existing = document.getElementById(PLAYER_ELEMENT_ID);
+  if (existing instanceof HTMLDivElement) {
+    sharedHost = existing;
+    return existing;
+  }
+
+  const host = document.createElement("div");
+  host.id = PLAYER_ELEMENT_ID;
+  host.className = "audiobook-yt-host";
+  host.setAttribute("aria-hidden", "true");
+  document.body.appendChild(host);
+  sharedHost = host;
+  return host;
+}
+
 interface AudiobooksContextValue {
   current: AudiobookItem | null;
   isPlaying: boolean;
@@ -213,10 +235,31 @@ export function AudiobooksProvider({ children }: { children: ReactNode }) {
       .then(() => {
         if (cancelled) return;
 
-        const host = document.getElementById(PLAYER_ELEMENT_ID);
-        if (!host) return;
+        if (sharedPlayer) {
+          playerRef.current = sharedPlayer;
+          setPlayerReady(true);
 
-        playerRef.current = new YT.Player(host, {
+          const stored = readAudiobookProgress();
+          if (
+            stored &&
+            !stored.videoId.startsWith("demo-") &&
+            !currentRef.current
+          ) {
+            const item = storedToItem(stored);
+            currentRef.current = item;
+            setCurrent(item);
+            setPendingResume(stored);
+            sharedPlayer.cueVideoById(stored.videoId, stored.positionSec);
+            setPositionSec(stored.positionSec);
+            if (stored.durationSec) setDurationSec(stored.durationSec);
+          }
+          return;
+        }
+
+        const host = ensurePlayerHost();
+        host.replaceChildren();
+
+        sharedPlayer = new YT.Player(host, {
           height: "1",
           width: "1",
           playerVars: {
@@ -231,6 +274,7 @@ export function AudiobooksProvider({ children }: { children: ReactNode }) {
           events: {
             onReady: () => {
               if (cancelled) return;
+              playerRef.current = sharedPlayer;
               setPlayerReady(true);
 
               const stored = readAudiobookProgress();
@@ -239,7 +283,7 @@ export function AudiobooksProvider({ children }: { children: ReactNode }) {
                 currentRef.current = item;
                 setCurrent(item);
                 setPendingResume(stored);
-                playerRef.current?.cueVideoById(stored.videoId, stored.positionSec);
+                sharedPlayer?.cueVideoById(stored.videoId, stored.positionSec);
                 setPositionSec(stored.positionSec);
                 if (stored.durationSec) setDurationSec(stored.durationSec);
               }
@@ -260,6 +304,7 @@ export function AudiobooksProvider({ children }: { children: ReactNode }) {
             },
           },
         });
+        playerRef.current = sharedPlayer;
       })
       .catch(() => {
         /* iframe API blocked */
@@ -267,8 +312,7 @@ export function AudiobooksProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
-      playerRef.current?.destroy();
-      playerRef.current = null;
+      /* Do not call YT.Player.destroy() — it fights React reconciliation on remount. */
     };
   }, [persistProgress, syncTimeFromPlayer]);
 
@@ -341,14 +385,7 @@ export function AudiobooksProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <AudiobooksContext.Provider value={value}>
-      <div
-        id={PLAYER_ELEMENT_ID}
-        className="audiobook-yt-host"
-        aria-hidden
-      />
-      {children}
-    </AudiobooksContext.Provider>
+    <AudiobooksContext.Provider value={value}>{children}</AudiobooksContext.Provider>
   );
 }
 
