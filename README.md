@@ -6,7 +6,7 @@
 **Репозиторий:** [github.com/zobnin8-ux/Jarvis](https://github.com/zobnin8-ux/Jarvis)  
 **Obsidian:** [docs/Jarvis Command Center.md](docs/Jarvis%20Command%20Center.md) — краткая заметка для vault  
 **Стек:** Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · Framer Motion  
-**Версия UI:** v0.8 — insight-брифинг, World News, Audiobooks, **ночной режим (День/Ночь)**, ISS telemetry, голос (toggle), SV-тикер, циркадная тема, graceful degradation
+**Версия UI:** v0.8 — insight-брифинг, World News, Audiobooks, **авто день/ночь**, ISS telemetry, голос (briefing + ISS в контексте), RP album art, SV-тикер, циркадная тема
 
 ---
 
@@ -151,7 +151,8 @@
 | | |
 |---|---|
 | **Станции** | SomaFM: Groove Salad, Drone Zone, Deep Space One; Radio Paradise Mellow |
-| **Метаданные** | `/api/radio/metadata` — track / artist |
+| **Метаданные** | `/api/radio/metadata` — track / artist; **обложка** — только Radio Paradise |
+| **UI** | RP: миниатюра 40×40 + `Artist — Title` |
 | **Связь с ядром** | `<audio>` + Web Audio AnalyserNode → Core Reactor |
 
 ### Audiobooks (YouTube)
@@ -172,7 +173,7 @@
 | | |
 |---|---|
 | **Ввод** | Web Speech API, **toggle** (клик или пробел), `ru-RU` |
-| **Мозг** | `/api/ask` → Claude (+ контекст погода / календарь / космос) |
+| **Мозг** | `/api/ask` → Claude + контекст: погода, календарь, космос, **текст Briefing**, **ISS** |
 | **Озвучка** | `/api/tts` → ElevenLabs (клон) → **отдельный** `new Audio()` |
 | **Фолбэк** | Только если ElevenLabs недоступен — `SpeechSynthesis` (системный голос) |
 | **Управление** | Кнопка ◯ справа в футере: **пробел — начать · пробел — отправить** |
@@ -296,6 +297,14 @@ F11 — полноэкранный режим браузера.
 
 \* Без ключа — demo-полка без живого воспроизведения.
 
+### Клиентские — ночной режим (расписание)
+
+| Переменная | Обязательно | Описание |
+|------------|-------------|----------|
+| `NEXT_PUBLIC_NIGHT_START_HOUR` | нет | Начало ночи (0–23), default **23** |
+| `NEXT_PUBLIC_NIGHT_END_HOUR` | нет | Конец ночи (0–23), default **7** |
+| `NEXT_PUBLIC_NIGHT_TZ` | нет | IANA TZ для авто-режима; иначе — часовой пояс браузера |
+
 ### Пример `.env.local`
 
 ```env
@@ -315,6 +324,10 @@ ELEVENLABS_VOICE_ID=...
 
 YOUTUBE_API_KEY=...
 YOUTUBE_CHANNEL_ID=UCY-ekT04DX2bQhzYvm2y5Lw
+
+# NEXT_PUBLIC_NIGHT_START_HOUR=23
+# NEXT_PUBLIC_NIGHT_END_HOUR=7
+# NEXT_PUBLIC_NIGHT_TZ=America/Los_Angeles
 
 FINNHUB_API_KEY=...
 ```
@@ -384,7 +397,7 @@ FINNHUB_API_KEY=...
 ```
 [Toggle / пробел] → SpeechRecognition (ru-RU)
        ↓ (второй toggle / пробел)
-   /api/ask (Claude + контекст погода/календарь/космос)
+   /api/ask (Claude + briefing / ISS / погода / календарь / космос)
        ↓
    Текст на экране + /api/tts (ElevenLabs mp3)
        ↓
@@ -453,7 +466,7 @@ onFinal (один раз) → /api/ask → speak(text)
 | **World News** | слайды 10 с | ротация off |
 | **Циркадная тема** | обновление каждые 60 с | заморожена при входе в ночь |
 
-**Файлы:** `nightMode.ts`, `NightModeContext.tsx`, `useAdaptivePoll.ts`, `useCoreResonanceVisuals.ts`, `ClockModule`, `LaunchCountdown`, `NightModeToggle.tsx`, `.command-shell.night-mode` в `globals.css`.
+**Файлы:** `nightMode.ts`, `nightSchedule.ts`, `NightModeContext.tsx`, `useAdaptivePoll.ts`, `useCoreResonanceVisuals.ts`, `ClockModule`, `LaunchCountdown`, `NightModeToggle.tsx`, `.command-shell.night-mode` в `globals.css`.
 
 > Для минимального шума вентиляторов: **Ночь** + радио выкл + по возможности `npm run build && npm start` вместо dev.
 
@@ -523,8 +536,8 @@ src/
 ├── layout/
 │   └── DashboardLayout.tsx
 ├── lib/
-│   ├── server/           # briefingSources, worldNews, spaceSnapshot, …
-│   ├── briefingContext.ts, stripMarkdown.ts, daypart.ts, speechRecognition.ts
+│   ├── server/           # briefingSources, briefingCache, worldNews, spaceSnapshot, …
+│   ├── briefingContext.ts, stripMarkdown.ts, daypart.ts, nightSchedule.ts
 │   ├── client/           # apiFetch + ServiceUnavailableError
 │   ├── calendar.ts, weather.ts, spaceLaunch.ts, …
 │   ├── coreReactorEngine.ts  # ⚠️ не трогать
@@ -580,7 +593,9 @@ src/
 
 ### Ночной режим (`useAdaptivePoll`)
 
-- Тумблер → `NightModeContext` → все модули: **`paused: true`**, нулевой API-трафик.
+- **Авто** (default): ночь **23:00–07:00** по TZ браузера или `NEXT_PUBLIC_NIGHT_TZ`.
+- Клик тумблера: **Авто → День → Ночь → Авто**; `localStorage`: `jarvis-night-mode-preference`.
+- В режиме **Ночь** (авто или вручную): `NightModeContext` → все модули **`paused: true`**, нулевой API-трафик.
 - Часы 1/min, countdown и idle-реактор заморожены; при **включённом радио** реактор работает как днём.
 - CSS: `.command-shell.night-mode`.
 
@@ -685,9 +700,8 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 - World News — только на экранах **lg+** (рядом с Space).
 - Voice Console — Chrome / Edge (Web Speech API).
 - UI погоды в развёрнутой телеметрии — мелковат (запланирован readability pass).
-- Radio Paradise album art в API есть, в UI пока не показан.
 - Post-launch report держится **12 часов**, затем переключается на **следующий** ближайший пуск из API (не «ваш» Starlink навсегда).
-- Briefing cache in-memory — сбрасывается при рестарте сервера.
+- Briefing cache in-memory (`briefingCache.ts`) — сбрасывается при рестарте сервера.
 - System Status подписи на английском; плашки недоступности — на русском.
 
 ---
@@ -696,7 +710,7 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 
 | Версия | Изменения |
 |--------|-----------|
-| **v0.8** | Insight-брифинг, World News, **Audiobooks** (YouTube), **глубокий ночной режим**, ISS в футере, NASA RSS, singleflight Spacedevs; **удалён утренний ритуал** |
+| **v0.8** | Briefing, World News, Audiobooks, **авто день/ночь**, голос + briefing/ISS, RP album art, deep night, ISS в футере, NASA RSS, singleflight; **ритуал удалён** |
 | **v0.7** | ISS Telemetry (код). NASA RSS в Space. Голос: toggle. Fix приветствия. Удалена карта МКС из Space. |
 | **v0.6** | Исправлен двойной TTS. Кэш модулей `jarvis-cache-v2-*`. **Fix:** бесконечный refetch в `useIntervalFetch` (убивал OpenWeather). Dev-порт **3001**. Серверный кэш погоды 10 мин. |
 | **v0.5** | AI Briefing, Voice Console, SV ticker, circadian theme, graceful degradation, ModuleHealth. |
@@ -708,7 +722,7 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 
 - [ ] ISS telemetry на узких экранах (свёрнутый режим)
 - [ ] Readability pass: weather telemetry, calendar empty states
-- [ ] Album art в Ambient Audio (Radio Paradise)
+- [ ] World News в голосовом контексте
 - [ ] Модули: radar, gremlin, notifications
 
 ---

@@ -12,12 +12,12 @@ status: active
 version: v0.8
 repo: https://github.com/zobnin8-ux/Jarvis
 stack: Next.js 15 · React 19 · TypeScript
-updated: 2026-06-15
+updated: 2026-06-16
 ---
 
 # Jarvis — Personal Command Center
 
-> Личный HUD-дашборд: погода, календарь, космос, AI-брифинг, World News, радио, Audiobooks, голос и **ночной режим (День/Ночь)**.  
+> Личный HUD-дашборд: погода, календарь, космос, AI-брифинг, World News, радио, Audiobooks, голос (**контекст briefing + ISS**) и **авто день/ночь**.  
 > Браузер **Chrome / Edge**, порт dev **3001**.
 
 ---
@@ -30,12 +30,13 @@ updated: 2026-06-15
 | Layout | `src/layout/DashboardLayout.tsx` |
 | Env-шаблон | `.env.example` |
 | Реестр модулей | `src/lib/moduleRegistry.ts` |
-| Брифинг (сервер) | `src/lib/server/briefingSources.ts` |
+| Брифинг (сервер) | `briefingSources.ts`, `briefingCache.ts` |
+| Голос `/api/ask` | тот же кэш briefing + ISS snapshot |
 | Audiobooks | `AudiobooksContext.tsx`, `/api/audiobooks` |
 | World News (RSS) | `src/config/news.ts` |
 | Space snapshot | `src/lib/server/spaceSnapshot.ts` |
 | ISS telemetry | `src/components/IssTelemetryModule.tsx` |
-| Ночной режим | `src/config/nightMode.ts`, `NightModeContext.tsx`, `useAdaptivePoll.ts` |
+| Ночной режим | `nightMode.ts`, `nightSchedule.ts`, `NightModeContext.tsx` |
 
 ---
 
@@ -65,10 +66,10 @@ updated: 2026-06-15
 - **Calendar** — Google Calendar SA или demo
 - **Space** — The Space Devs, countdown / post-launch / NASA RSS; кэш 15 мин + **singleflight**
 - **World News** — BBC, Guardian, RIA, RBC; слайды 10 с, RU/EN
-- **Ambient Audio** — SomaFM + Radio Paradise → **Core Reactor**
+- **Ambient Audio** — SomaFM + Radio Paradise → **Core Reactor**; **обложка трека** — только RP
 - **ISS Telemetry** — футер (md+), WTIA + geocoding + TLE
 - **Audiobooks** — YouTube «Голос Коваленко», футер **справа** от радио (та же высота); библиотека **draggable**, ~828×736 px
-- **Voice Console** — toggle + пробел, `/api/ask` + TTS
+- **Voice Console** — toggle + пробел; `/api/ask` (briefing text + ISS + панели) + TTS
 - **SV Ticker** — demo events + Finnhub (опц.)
 - **Night Mode** — тумблер в шапке → [[#Ночной режим]]
 
@@ -91,13 +92,22 @@ updated: 2026-06-15
 | Кэш | 3 ч + инвалидация при смене `dayPart` |
 | TZ | `BRIEFING_TZ` или offset OpenWeather |
 
-Файлы: `briefingContext.ts`, `stripMarkdown.ts`, `daypart.ts`, `briefing/route.ts`, `ask/route.ts`
+Файлы: `briefingContext.ts`, `stripMarkdown.ts`, `daypart.ts`, `briefingCache.ts`, `briefing/route.ts`, `ask/route.ts`
+
+**Голос (`/api/ask`):** общий кэш с `/api/briefing` + телеметрия ISS из футера. Примеры: «что важного?», «где МКС?».
 
 ---
 
 ## Ночной режим
 
-**Тумблер:** шапка → «Режим: День / Ночь» · `localStorage`: `jarvis-night-mode`
+**Тумблер:** шапка → `Авто · День` / `Авто · Ночь` / `День` / `Ночь`  
+**Клик:** Авто → День → Ночь → Авто · `localStorage`: `jarvis-night-mode-preference`
+
+| Режим | Поведение |
+|-------|-----------|
+| **Авто** (default) | Ночь **23:00–07:00** (TZ браузера или `NEXT_PUBLIC_NIGHT_TZ`) |
+| **День** | Вручную — все API |
+| **Ночь** | Вручную — только cache |
 
 | | День | Ночь |
 |---|------|------|
@@ -109,7 +119,9 @@ updated: 2026-06-15
 
 World News: ротация 10 с off. ISS: **CACHED POSITION**. Циркадная палитра не пересчитывается.
 
-Файлы: `nightMode.ts`, `NightModeContext`, `useAdaptivePoll`, `useCoreResonanceVisuals`, `ClockModule`, `LaunchCountdown`, `globals.css`
+Env: `NEXT_PUBLIC_NIGHT_START_HOUR`, `NEXT_PUBLIC_NIGHT_END_HOUR`, `NEXT_PUBLIC_NIGHT_TZ`
+
+Файлы: `nightMode.ts`, `nightSchedule.ts`, `NightModeContext`, `useAdaptivePoll`, `useCoreResonanceVisuals`, `ClockModule`, `LaunchCountdown`, `globals.css`
 
 ---
 
@@ -131,6 +143,7 @@ flowchart LR
   end
   subgraph voice [Voice Console]
     D[SpeechRecognition] --> E[/api/ask/]
+    E --> H[briefing cache + ISS + panels]
     E --> F[/api/tts ElevenLabs]
     F --> G[new Audio — отдельно]
   end
@@ -175,6 +188,10 @@ NEXT_PUBLIC_USER_NAME=Andrei
 GOOGLE_CALENDAR_ID=
 GOOGLE_SERVICE_ACCOUNT_JSON_PATH=
 BRIEFING_TZ=America/Los_Angeles
+
+# NEXT_PUBLIC_NIGHT_START_HOUR=23
+# NEXT_PUBLIC_NIGHT_END_HOUR=7
+# NEXT_PUBLIC_NIGHT_TZ=America/Los_Angeles
 ```
 
 После правки `.env.local` → перезапуск `npm run dev`.
@@ -200,7 +217,7 @@ npm test         # Vitest
 
 | Ver | Highlights |
 |-----|------------|
-| **v0.8** | Briefing, World News, Audiobooks, deep night mode, ISS, NASA RSS, singleflight; **ритуал удалён** |
+| **v0.8** | Briefing, World News, Audiobooks, **авто день/ночь**, голос+briefing/ISS, RP art, deep night, ISS, NASA RSS, singleflight; **ритуал удалён** |
 | v0.7 | ISS (код), NASA RSS, voice toggle, убрана карта МКС |
 | v0.6 | Fix двойного TTS, cache v2, порт 3001 |
 | v0.5 | Briefing, Voice, SV ticker, circadian |
@@ -211,7 +228,7 @@ npm test         # Vitest
 
 - [ ] ISS telemetry на узких экранах (свёрнутый режим)
 - [ ] Readability: weather / calendar
-- [ ] Album art (Radio Paradise)
+- [ ] World News в голосовом контексте
 - [ ] radar · gremlin · notifications
 
 ---
@@ -222,7 +239,9 @@ npm test         # Vitest
 - Briefing не должен падать, если упала только погода.
 - World News только `lg+`; на телефоне — только Space.
 - Spacedevs 429: один dev, не спамить API; singleflight на briefing+space.
-- Ночь: тумблер в шапке — **нулевой API**, статичный HUD; радио при включении — полный реактор.
+- Ночь: **авто 23–7** или вручную — **нулевой API**, статичный HUD; радио при включении — полный реактор.
+- Голос: `/api/ask` видит текст Briefing и ISS; не выдумывать, если телеметрия недоступна.
+- RP Mellow: обложка трека в Ambient Audio.
 - Audiobooks: отдельный YT IFrame; радио не трогаем.
 
 ---
