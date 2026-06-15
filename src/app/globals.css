@@ -2649,6 +2649,11 @@ body {
   color: rgba(160, 190, 255, 0.88);
 }
 
+.night-mode-toggle.is-auto .night-mode-toggle-value {
+  font-size: 0.48rem;
+  letter-spacing: 0.06em;
+}
+
 .night-mode-toggle-label {
   opacity: 0.55;
 }
