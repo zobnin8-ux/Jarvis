@@ -3364,3 +3364,545 @@ body {
   }
 }
 
+/* —— Narrow / half-screen HUD (no page scroll) —— */
+.narrow-hud {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 0.35rem;
+}
+
+.narrow-frame {
+  display: flex;
+  width: min(100%, 900px);
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.narrow-main-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 1.15fr) minmax(0, 1fr);
+  gap: 0.75rem;
+  min-height: min(42vh, 360px);
+  max-height: min(48vh, 400px);
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.narrow-col {
+  min-width: 0;
+  min-height: 0;
+}
+
+.narrow-weather-panel {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0.75rem 0.85rem !important;
+  overflow: hidden;
+}
+
+.narrow-center-stack {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 0;
+}
+
+.narrow-center-meta {
+  flex-shrink: 0;
+}
+
+.narrow-center-meta .clock-content {
+  padding: 0 !important;
+}
+
+.narrow-center-core {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  justify-content: center !important;
+}
+
+.narrow-center-core .hud-layer {
+  width: min(100%, 200px);
+  height: min(100%, 200px);
+}
+
+@media (max-height: 800px), (max-width: 1400px) {
+  .narrow-center-core .hud-layer {
+    width: min(100%, 168px);
+    height: min(100%, 168px);
+  }
+}
+
+.narrow-status-panel {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.75rem 0.85rem !important;
+  overflow: hidden;
+}
+
+.narrow-status-divider {
+  flex-shrink: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(85, 214, 255, 0.22),
+    transparent
+  );
+}
+
+.narrow-status-panel .clock-content {
+  padding: 0 !important;
+}
+
+.weather-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.weather-compact-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.weather-compact-main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.weather-compact-temp-block {
+  min-width: 0;
+}
+
+.weather-compact-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 0.55rem;
+}
+
+.weather-compact-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.weather-compact-metric-label {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(200, 216, 235, 0.55);
+}
+
+.weather-compact-metric-value {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgba(234, 242, 255, 0.92);
+}
+
+.narrow-comms-col {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.narrow-comms-col .comms-panel {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.narrow-clock-col {
+  position: relative;
+  display: flex;
+  height: 100%;
+  align-items: stretch;
+  justify-content: center;
+  min-height: 0;
+}
+
+.narrow-frame .briefing-teaser {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.zone-center.layer-hud.narrow-clock-col,
+.zone-center.layer-hud.narrow-clock-col .clock-stage {
+  --color-accent: #55d6ff;
+  --color-secondary: #ffb84d;
+  --core-glow: rgba(85, 214, 255, 0.12);
+  --core-glow-outer: rgba(85, 214, 255, 0.07);
+  --center-spotlight: rgba(85, 214, 255, 0.1);
+  --clock-glow: 0 0 100px rgba(85, 214, 255, 0.28), 0 0 180px rgba(85, 214, 255, 0.08);
+  --clock-ring: rgba(85, 214, 255, 0.14);
+}
+
+.hud-nav-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.hud-nav-chip {
+  border: 1px solid rgba(85, 214, 255, 0.18);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  background: rgba(14, 22, 32, 0.55);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(234, 242, 255, 0.55);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.hud-nav-chip:hover,
+.hud-nav-chip.is-active {
+  border-color: rgba(85, 214, 255, 0.42);
+  color: rgba(234, 242, 255, 0.92);
+  background: rgba(85, 214, 255, 0.08);
+}
+
+.hud-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  border: none;
+  background: rgba(4, 8, 14, 0.62);
+  cursor: pointer;
+}
+
+.hud-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 420px);
+  height: 100%;
+  border-left: 1px solid rgba(85, 214, 255, 0.14);
+  background: rgba(8, 14, 22, 0.97);
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+}
+
+.hud-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 1px solid rgba(85, 214, 255, 0.08);
+}
+
+.hud-drawer-close {
+  border: 1px solid rgba(234, 242, 255, 0.12);
+  border-radius: 0.35rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  background: transparent;
+  color: rgba(234, 242, 255, 0.65);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.hud-drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.75rem;
+}
+
+.hud-drawer-body .panel {
+  margin: 0;
+}
+
+.briefing-teaser {
+  display: block;
+  width: 100%;
+  flex-shrink: 0;
+  padding: 0.65rem 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.briefing-teaser:hover {
+  border-color: rgba(85, 214, 255, 0.22);
+}
+
+.briefing-teaser-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.briefing-teaser-stale {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.48rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(167, 139, 250, 0.85);
+}
+
+.briefing-teaser-expand {
+  margin-left: auto;
+  color: rgba(234, 242, 255, 0.35);
+}
+
+.briefing-teaser-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(234, 242, 255, 0.72);
+}
+
+.command-shell.is-narrow {
+  padding: 0.65rem 0.75rem !important;
+}
+
+.command-shell.is-narrow .narrow-comms-col .comms-tab-body,
+.command-shell.is-narrow .comms-panel--compact .comms-tab-body {
+  overflow: hidden;
+  flex: 0 1 auto;
+}
+
+.command-shell.is-narrow .comms-panel {
+  padding: 0.5rem 0.6rem !important;
+}
+
+.command-shell.is-narrow .comms-panel--compact {
+  align-self: center;
+}
+
+.command-shell.is-narrow .weather-panel {
+  padding: 0.45rem 0.5rem !important;
+}
+
+.command-shell.is-narrow .narrow-weather-panel .weather-temp {
+  font-size: clamp(2rem, 6vw, 2.5rem);
+  line-height: 1;
+}
+
+.command-shell.is-narrow .narrow-weather-panel .weather-desc,
+.command-shell.is-narrow .narrow-weather-panel .weather-day-status,
+.command-shell.is-narrow .narrow-weather-panel .weather-location {
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-align: left;
+}
+
+.command-shell.is-narrow .narrow-weather-panel .weather-compact-main .weather-hud-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.command-shell.is-narrow .narrow-center-meta .clock-time {
+  font-size: clamp(1.85rem, 5.5vw, 2.45rem);
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 28px rgba(85, 214, 255, 0.22);
+}
+
+.command-shell.is-narrow .narrow-center-meta .clock-meta {
+  margin-top: 0.3rem !important;
+}
+
+.command-shell.is-narrow .narrow-center-meta .clock-meta.space-y-2 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.12rem;
+}
+
+.command-shell.is-narrow .narrow-center-meta .clock-weekday,
+.command-shell.is-narrow .narrow-center-meta .clock-date {
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+}
+
+.command-shell.is-narrow .narrow-center-meta .clock-greeting {
+  margin-top: 0.35rem !important;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+}
+
+@media (max-height: 800px), (max-width: 1400px) {
+  .command-shell.is-narrow .narrow-center-meta .clock-time {
+    font-size: clamp(1.65rem, 5vw, 2.1rem);
+  }
+
+  .command-shell.is-narrow .narrow-center-meta .clock-greeting {
+    font-size: 0.62rem;
+  }
+
+  .command-shell.is-narrow .narrow-main-row {
+    max-height: min(46vh, 380px);
+  }
+}
+
+/* legacy narrow weather overrides (wide weather panel in narrow) */
+.command-shell.is-narrow .weather-hero {
+  gap: 0.2rem;
+}
+
+.command-shell.is-narrow .weather-hero-head {
+  text-align: left;
+}
+
+.command-shell.is-narrow .weather-hero-body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.15rem;
+}
+
+.command-shell.is-narrow .weather-hero-center {
+  align-items: flex-start;
+  text-align: left;
+  flex-direction: row;
+  gap: 0.35rem;
+}
+
+.command-shell.is-narrow .weather-hero-rail {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0.12rem 0.35rem;
+}
+
+.command-shell.is-narrow .weather-hero-rail--left .weather-rail-metric,
+.command-shell.is-narrow .weather-hero-rail--right .weather-rail-metric {
+  flex-direction: row;
+  text-align: left;
+}
+
+.command-shell.is-narrow .weather-temp {
+  font-size: clamp(1.35rem, 4.5vw, 1.75rem);
+  line-height: 1;
+}
+
+.command-shell.is-narrow .weather-desc,
+.command-shell.is-narrow .weather-day-status,
+.command-shell.is-narrow .weather-location {
+  font-size: 0.48rem;
+  letter-spacing: 0.1em;
+}
+
+.command-shell.is-narrow .weather-rail-label {
+  font-size: 0.4rem;
+}
+
+.command-shell.is-narrow .weather-rail-value {
+  font-size: 0.62rem;
+}
+
+.command-shell.is-narrow .weather-rail-icon {
+  width: 0.62rem;
+  height: 0.62rem;
+}
+
+.command-shell.is-narrow .weather-icon-wrap {
+  display: block;
+}
+
+.command-shell.is-narrow .weather-icon-wrap .weather-hud-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.command-shell.is-narrow .narrow-comms-col .comms-panel--compact {
+  align-self: center;
+}
+
+.command-shell.is-narrow .calendar-month {
+  font-size: 0.54rem;
+  margin-bottom: 0.35rem;
+}
+
+.command-shell.is-narrow .calendar-strip-cell {
+  font-size: 0.56rem;
+}
+
+.command-shell.is-narrow .calendar-strip-number {
+  font-size: 0.68rem;
+}
+
+.command-shell.is-narrow .calendar-section-label {
+  font-size: 0.56rem;
+  margin-bottom: 0.25rem;
+}
+
+.command-shell.is-narrow .calendar-timeline-time,
+.command-shell.is-narrow .calendar-timeline-title {
+  font-size: 0.64rem;
+}
+
+.command-shell.is-narrow .calendar-empty {
+  font-size: 0.58rem;
+}
+
+.command-shell.is-narrow .comms-header {
+  margin-bottom: 0.35rem;
+}
+
+.command-shell.is-narrow .comms-header .label {
+  font-size: 0.54rem;
+}
+
+.command-shell.is-narrow .footer-audio-row {
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.command-shell.is-narrow .footer-controls {
+  width: min(100%, 900px);
+  margin: 0 auto;
+}
+
+.command-shell.is-narrow .briefing-teaser {
+  padding: 0.45rem 0.65rem;
+}
+
+.command-shell.is-narrow .briefing-teaser-text {
+  -webkit-line-clamp: 1;
+  font-size: 0.68rem;
+  margin-top: 0.25rem !important;
+}

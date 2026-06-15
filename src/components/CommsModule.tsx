@@ -12,7 +12,11 @@ import { getModuleConfig } from "@/lib/moduleRegistry";
 import { fetchCalendar } from "@/services/calendarService";
 import { fetchGmail } from "@/services/gmailService";
 
-export function CommsModule() {
+interface CommsModuleProps {
+  compact?: boolean;
+}
+
+export function CommsModule({ compact = false }: CommsModuleProps) {
   const [tab, setTab] = useState<CommsTabId>("calendar");
 
   const calendarConfig = getModuleConfig("calendar");
@@ -44,24 +48,30 @@ export function CommsModule() {
 
   return (
     <Panel
-      className="comms-panel calendar-panel h-full overflow-hidden p-5 md:p-6"
+      className={`comms-panel calendar-panel overflow-hidden p-5 md:p-6${compact ? " comms-panel--compact" : " h-full"}`}
       delay={0.2}
     >
       <div className="calendar-atmosphere" aria-hidden />
 
-      <div className="relative z-[1] flex h-full min-h-0 flex-col">
+      <div
+        className={`relative z-[1] flex min-h-0 flex-col${compact ? "" : " h-full"}`}
+      >
         <header className="comms-header">
           <div className="label">Comms</div>
-          <CommsTabs
-            active={tab}
-            unreadCount={gmailFetch.data?.unreadCount ?? 0}
-            onChange={setTab}
-          />
+          {!compact && (
+            <CommsTabs
+              active={tab}
+              unreadCount={gmailFetch.data?.unreadCount ?? 0}
+              onChange={setTab}
+            />
+          )}
         </header>
 
-        <div className="comms-tab-body flex min-h-0 flex-1 flex-col">
+        <div
+          className={`comms-tab-body flex min-h-0 flex-col${compact ? "" : " flex-1"}`}
+        >
           <AnimatePresence mode="wait" initial={false}>
-            {tab === "calendar" ? (
+            {tab === "calendar" || compact ? (
               <motion.div
                 key="calendar"
                 className="comms-tab-pane flex min-h-0 flex-1 flex-col"
@@ -74,6 +84,7 @@ export function CommsModule() {
                   data={calendarFetch.data}
                   loading={calendarFetch.loading}
                   unavailableService={calendarFetch.unavailableService}
+                  compact={compact}
                 />
               </motion.div>
             ) : (

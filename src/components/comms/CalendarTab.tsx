@@ -16,12 +16,16 @@ interface CalendarTabProps {
   data: CalendarData | null;
   loading: boolean;
   unavailableService: string | null;
+  compact?: boolean;
 }
+
+const COMPACT_EVENT_LIMIT = 2;
 
 export function CalendarTab({
   data,
   loading,
   unavailableService,
+  compact = false,
 }: CalendarTabProps) {
   const [weekOpen, setWeekOpen] = useState(false);
   const [selectedDateKey, setSelectedDateKey] = useState("");
@@ -68,25 +72,30 @@ export function CalendarTab({
         selectedDateKey={selectedDateKey}
         onSelectDay={setSelectedDateKey}
       />
-      <NextEventBlock next={data.nextEvent} />
+      {!compact && <NextEventBlock next={data.nextEvent} />}
 
       {selectedDay && (
         <section
-          className="calendar-today flex-1 min-h-0"
+          className={`calendar-today${compact ? "" : " flex-1 min-h-0"}`}
           aria-label={selectedDay.label}
         >
           <div className="calendar-section-label">
             {selectedDay.label.toUpperCase()}
-            <span className="calendar-event-count">
-              {selectedDay.events.length} events
-            </span>
+            {!compact && (
+              <span className="calendar-event-count">
+                {selectedDay.events.length} events
+              </span>
+            )}
           </div>
 
           {selectedDay.events.length === 0 ? (
             <div className="calendar-empty">Clear schedule</div>
           ) : (
             <ul className="calendar-timeline">
-              {selectedDay.events.map((event, index) => (
+              {(compact
+                ? selectedDay.events.slice(0, COMPACT_EVENT_LIMIT)
+                : selectedDay.events
+              ).map((event, index) => (
                 <TimelineItem
                   key={`${event.startIso}-${event.title}-${index}`}
                   event={event}
@@ -98,6 +107,7 @@ export function CalendarTab({
         </section>
       )}
 
+      {!compact && (
       <div className="calendar-footer mt-auto">
         <button
           type="button"
@@ -133,6 +143,7 @@ export function CalendarTab({
           )}
         </AnimatePresence>
       </div>
+      )}
     </>
   );
 }

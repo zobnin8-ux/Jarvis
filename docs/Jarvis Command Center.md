@@ -9,16 +9,17 @@ aliases:
   - Jarvis
   - JARVIS
 status: active
-version: v0.9
+version: v0.10
 repo: https://github.com/zobnin8-ux/Jarvis
 stack: Next.js 15 · React 19 · TypeScript
-updated: 2026-06-15
+updated: 2026-06-11
 ---
 
 # Jarvis — Personal Command Center
 
-> Личный HUD-дашборд: погода, **Comms** (календарь + Gmail + **Tasks**), космос, AI-брифинг, World News, радио, Audiobooks, голос (**briefing + news + mail + ISS**) и **авто день/ночь**.  
-> Запуск: **`Jarvis.lnk`** (launcher) или `npm run dev` · порт **3001** · Chrome / Edge.
+> Личный HUD-дашборд: погода, **Comms**, космос, AI-брифинг, World News, радио, Audiobooks, голос и **авто день/ночь**.  
+> **Narrow HUD** — пол-экрана / ноутбук (frame 900px, drawer для Space/News/ISS).  
+> Запуск: **`Jarvis.lnk`** · порт **3001** · Chrome / Edge.
 
 ---
 
@@ -27,6 +28,7 @@ updated: 2026-06-15
 | Что | Где |
 |-----|-----|
 | README (полная дока) | `README.md` |
+| **Narrow HUD** | `useNarrowHud.ts`, `HudDrawer.tsx`, `HudNavChips.tsx`, `BriefingTeaser.tsx`, `ClockCore.tsx`, `ClockMeta.tsx` |
 | Layout | `src/layout/DashboardLayout.tsx` |
 | Env-шаблон | `.env.example` |
 | Реестр модулей | `src/lib/moduleRegistry.ts` |
@@ -55,20 +57,36 @@ updated: 2026-06-15
 
 ---
 
-## Схема экрана (v0.9)
+## Схема экрана
+
+### Wide (полный монитор)
 
 ```
 ┌──────────────┬─────────────────────┬──────────────┐
 │ Weather      │   Clock + Core      │  Comms       │
 │ Briefing     │   Reactor (radio)   │  Cal / Mail  │
 ├──────────────┴──────────┬──────────┴──────────────┤
-│ Space (Orbital Ops)     │  World News (lg+)      │
+│ Space                   │  World News (lg+)        │
 ├─────────────────────────┴────────────────────────┤
-│ SV Ticker                                        │
-├──────────────────────────────────────────────────┤
-│ Ambient Audio · Audiobooks · ISS TELEMETRY · Voice Console │
+│ SV Ticker · Audio · Audiobooks · ISS · Voice      │
 └──────────────────────────────────────────────────┘
 ```
+
+### Narrow (пол-экрана / ноутбук)
+
+Триггер: `useNarrowHud` — малый viewport **или** окно < ~72% ширины монитора.
+
+```
+        ┌──────── max 900px по центру ────────┐
+        │ Weather │ time+date+core │ Calendar │
+        │         │   greeting     │ 2 events │
+        ├─────────┴────────────────┴──────────┤
+        │ Briefing teaser → drawer            │
+        │ Radio · Audiobooks · Voice          │
+        └─────────────────────────────────────┘
+```
+
+Чипы в шапке → drawer: **Space · Briefing · News · ISS**. Gmail — только в wide Comms.
 
 ---
 
@@ -271,7 +289,8 @@ npm test         # Vitest
 
 | Ver | Highlights |
 |-----|------------|
-| **v0.9** | **Launcher** (Jarvis.exe + ярлык), calendar Tasks + day picker, voice news/mail/radio, weather rails, Устарело, dev:clean/kiosk/PWA, 429 cooldown, tests |
+| **v0.10** | **Narrow HUD**: frame 900px, weather left, time above core, compact calendar, drawer chips, Briefing teaser, half-screen detect |
+| **v0.9** | Launcher, calendar Tasks + day picker, voice news/mail/radio, weather rails, Устарело, dev:clean/kiosk/PWA, 429 cooldown, tests |
 | **v0.8** | Briefing, World News, Audiobooks, **Comms + Gmail**, disk cache, audiobook covers, **weather side rails**, авто день/ночь, голос+briefing/ISS, RP art, ISS, singleflight; **ритуал удалён** |
 | v0.7 | ISS (код), NASA RSS, voice toggle, убрана карта МКС |
 | v0.6 | Fix двойного TTS, cache v2, порт 3001 |
@@ -281,7 +300,8 @@ npm test         # Vitest
 
 ## Roadmap
 
-- [ ] ISS telemetry на узких экранах (свёрнутый режим)
+- [x] **Narrow HUD** (half-screen / laptop)
+- [ ] ISS telemetry на узких экранах (свёрнутый режим — частично drawer ISS)
 - [x] Readability: weather side rails, calendar day picker
 - [x] World News + почта в голосовом `/api/ask`
 - [x] **Launcher** (`Jarvis.lnk`, `launcher:build`)
@@ -294,7 +314,7 @@ npm test         # Vitest
 
 - Demo-режим тихий, если ключ не задан; плашка «недоступен» — только когда ключ есть, API упал.
 - Briefing не должен падать, если упала только погода.
-- World News только `lg+`; на телефоне — только Space.
+- Narrow: чипы Space/Briefing/News/ISS → drawer; календарь 2 события; radio+audiobooks в футере.
 - Spacedevs/OpenWeather 429: сервер **15 мин cooldown**, stale из кэша; `npm run kiosk` для постоянной вкладки.
 - **Launcher:** `Jarvis.lnk` в корне — двойной клик, без терминала; Edge/Chrome по умолчанию.
 - PWA: `public/manifest.webmanifest` — Install app (опционально).

@@ -6,7 +6,7 @@
 **Репозиторий:** [github.com/zobnin8-ux/Jarvis](https://github.com/zobnin8-ux/Jarvis)  
 **Obsidian:** [docs/Jarvis Command Center.md](docs/Jarvis%20Command%20Center.md) — краткая заметка для vault  
 **Стек:** Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · Framer Motion  
-**Версия UI:** v0.9 — launcher (ярлык без терминала), календарь+Tasks, голос (news/mail/radio), kiosk/PWA, weather rails, **Устарело**, 429 cooldown
+**Версия UI:** v0.10 — **narrow HUD** (пол-экрана / ноутбук), launcher, календарь+Tasks, голос, kiosk/PWA, weather rails, **Устарело**, 429 cooldown
 
 ---
 
@@ -35,7 +35,7 @@
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│  Command Center                          [Режим: День/Ночь] v0.8 │
+│  Command Center              [Space·Briefing·News·ISS]  v0.10 │
 ├─────────────────┬────────────────────────────┬─────────────────┤
 │    WEATHER      │      CLOCK + CORE          │  COMMS (Cal/Mail)│
 │  (атмосфера)    │   HUD-кольца, эквалайзер   │  week / NEXT    │
@@ -52,7 +52,34 @@
 └────────────────────────────────────────────────────────────────┘
 ```
 
-**Центр экрана** — Core Reactor: кольца HUD + эквалайзер, реагирующий на **радио** (не на голосовой TTS).
+### Narrow HUD (пол-экрана, ноутбук, окно < ~72% монитора)
+
+Авто: `useNarrowHud` — ширина ≤1399px, высота ≤849px **или** окно уже ~72% ширины монитора (Snap пол-экрана на ultrawide).
+
+```
+┌─────────────────── max 900px, по центру ───────────────────┐
+│  [Space] [Briefing] [News] [ISS]  → drawer справа          │
+├─────────────┬──────────────────────┬───────────────────────┤
+│  Weather    │  16:10 · день · дата │  Comms (calendar)     │
+│  compact    │  greeting            │  week strip + 2 events│
+│             │       CORE ◉         │                       │
+├─────────────┴──────────────────────┴───────────────────────┤
+│  Briefing teaser (1 строка → drawer)                        │
+├────────────────────────────────────────────────────────────┤
+│  Ambient Audio · Audiobooks · Voice Console                │
+└────────────────────────────────────────────────────────────┘
+```
+
+| | |
+|---|---|
+| **Скрыто на HUD** | Space, полный Briefing, World News, ISS, SV ticker, Gmail-вкладка |
+| **Drawer** | Space · Briefing · News · ISS — чипы в шапке |
+| **Файлы** | `useNarrowHud.ts`, `HudDrawer.tsx`, `HudNavChips.tsx`, `BriefingTeaser.tsx`, `ClockCore.tsx`, `ClockMeta.tsx`, `WeatherModule compact`, `CommsModule compact` |
+| **Core** | Только кольца по центру; время/дата/greeting **над** core (не поверх) |
+
+**Центр экрана (wide)** — Core Reactor: кольца HUD + эквалайзер, реагирующий на **радио** (не на голосовой TTS).
+
+---
 
 ---
 
@@ -62,7 +89,7 @@
 
 | | |
 |---|---|
-| **Файлы** | `ClockModule`, `CentralHudRings`, `coreReactorEngine`, `useCoreResonanceVisuals` |
+| **Файлы** | `ClockModule`, `ClockCore`, `ClockMeta`, `CentralHudRings`, `coreReactorEngine`, `useCoreResonanceVisuals`, `useClockNow.ts` |
 | **Что делает** | Часы, дата, приветствие (`Good Morning, {name}`), System Status |
 | **Core Reactor** | Свечение и «дыхание» от аудио-анализатора радио; idle-режим через 45 с без активности |
 | **Обновление** | Часы — каждую секунду; статус фидов — из `ModuleHealthContext` |
@@ -577,7 +604,8 @@ src/
 │   ├── globals.css       # HUD-тема, mood, circadian overrides
 │   ├── layout.tsx
 │   └── page.tsx
-├── components/           # UI-модули + WorldNews + Audiobooks + VoiceConsole
+├── components/           # UI-модули + WorldNews + Audiobooks + VoiceConsole + narrow HUD
+│   ├── ClockCore.tsx, ClockMeta.tsx, BriefingTeaser.tsx, HudDrawer.tsx, HudNavChips.tsx
 ├── config/
 │   ├── theme.ts          # Темы + circadian palette
 │   ├── nightMode.ts      # Ночные интервалы опроса
@@ -593,6 +621,7 @@ src/
 │   ├── useIntervalFetch.ts        # Retry, cache, stale, unavailable, paused
 │   ├── useAdaptivePoll.ts         # Ночные интервалы + пауза при hidden tab
 │   ├── useCoreResonanceVisuals.ts # ⚠️ не трогать
+│   ├── useNarrowHud.ts, useClockNow.ts
 │   ├── useVoiceInput.ts / useVoiceOutput.ts
 │   └── useSystemStatus.ts
 ├── layout/
@@ -822,7 +851,8 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 
 ## Известные ограничения
 
-- World News — только на экранах **lg+** (рядом с Space).
+- World News — только на экранах **lg+** (wide layout); в narrow — drawer «News».
+- Narrow HUD: Gmail только в wide Comms; календарь — 2 события без скролла.
 - Voice Console — Chrome / Edge (Web Speech API).
 - UI боковых метрик погоды — one-line rails, AQI цифрой, sunset 12h (v0.9).
 - Ярлык на Desktop через OneDrive (кириллица) может не создаваться автоматически — drag `Jarvis.lnk` вручную.
@@ -836,6 +866,7 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 
 | Версия | Изменения |
 |--------|-----------|
+| **v0.10** | **Narrow HUD**: frame 900px, погода слева, время+core по центру, compact calendar, drawer (Space/Briefing/News/ISS), Briefing teaser, radio+audiobooks в футере, half-screen detection |
 | **v0.9** | **Launcher** (`Jarvis.exe` + ярлык), календарь **Tasks/reminders** + клик по дням, голос (**World News**, почта, короткие команды, радио), weather rails (AQI/12h), **Устарело**, `dev:clean` / `kiosk`, PWA manifest, 429 cooldown 15 мин, тесты sunset/polling |
 | **v0.8** | Briefing, World News, Audiobooks, **Comms + Gmail**, **briefing disk cache**, audiobook covers, **weather side rails** (HUD icons), **авто день/ночь**, голос + briefing/ISS, RP album art, deep night, ISS, NASA RSS, singleflight; **ритуал удалён** |
 | **v0.7** | ISS Telemetry (код). NASA RSS в Space. Голос: toggle. Fix приветствия. Удалена карта МКС из Space. |
@@ -847,7 +878,8 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 
 ## Roadmap
 
-- [ ] ISS telemetry на узких экранах (свёрнутый режим)
+- [x] Narrow HUD (half-screen / laptop)
+- [ ] ISS telemetry на узких экранах (свёрнутый режим в drawer — частично через чип ISS)
 - [x] Readability: weather side rails, calendar day picker
 - [x] World News + почта в голосовом `/api/ask`
 - [x] Launcher, kiosk, dev:clean, PWA, 429 cooldown

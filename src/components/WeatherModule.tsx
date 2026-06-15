@@ -16,7 +16,11 @@ const WEATHER_LOCATION = (
   process.env.NEXT_PUBLIC_WEATHER_CITY ?? "San Jose"
 ).toUpperCase();
 
-export function WeatherModule() {
+interface WeatherModuleProps {
+  compact?: boolean;
+}
+
+export function WeatherModule({ compact = false }: WeatherModuleProps) {
   const config = getModuleConfig("weather");
   const fetcher = useCallback(() => fetchWeather(), []);
   const dayInterval = config?.refreshInterval ?? 900000;
@@ -43,6 +47,45 @@ export function WeatherModule() {
     () => (data ? getWeatherDayStatus(data) : null),
     [data]
   );
+
+  if (compact) {
+    return (
+      <section
+        className={`weather-compact weather-mood--${mood}`}
+        aria-label="Current conditions"
+      >
+        {unavailableService ? (
+          <ServiceUnavailablePanel service={unavailableService} />
+        ) : loading && !data ? (
+          <div className="text-sm text-white/30">Acquiring telemetry...</div>
+        ) : data ? (
+          <>
+            <div className="weather-compact-head">
+              <div className="weather-location">{WEATHER_LOCATION}</div>
+              {dayStatus && (
+                <div className="weather-day-status">{dayStatus}</div>
+              )}
+            </div>
+
+            <div className="weather-compact-main">
+              <WeatherHudIcon icon={data.icon} mood={mood} size="sm" />
+              <div className="weather-compact-temp-block">
+                <div className="weather-temp">{data.temperature}°</div>
+                <div className="weather-desc">{data.description}</div>
+              </div>
+            </div>
+
+            <div className="weather-compact-metrics">
+              <CompactMetric label="Feels" value={`${data.feelsLike}°`} />
+              <CompactMetric label="Wind" value={`${data.windSpeed.toFixed(1)} m/s`} />
+              <CompactMetric label="Humid" value={`${data.humidity}%`} />
+              <CompactMetric label="Set" value={formatTime12h(data.sunset)} />
+            </div>
+          </>
+        ) : null}
+      </section>
+    );
+  }
 
   return (
     <Panel
@@ -122,6 +165,15 @@ export function WeatherModule() {
         ) : null}
       </div>
     </Panel>
+  );
+}
+
+function CompactMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="weather-compact-metric">
+      <span className="weather-compact-metric-label">{label}</span>
+      <span className="weather-compact-metric-value">{value}</span>
+    </div>
   );
 }
 
