@@ -314,7 +314,8 @@ npm test         # Vitest
 
 - Demo-режим тихий, если ключ не задан; плашка «недоступен» — только когда ключ есть, API упал.
 - Briefing не должен падать, если упала только погода.
-- Narrow: чипы Space/Briefing/News/ISS → drawer; календарь 2 события; radio+audiobooks в футере.
+- Narrow: чипы Space/Briefing/News/ISS → drawer; календарь 2 события; radio+audiobooks+**MAP (OSM)** в футере.
+- **Карта:** OSM сейчас, Google Maps опционально — [MAP_AND_LOCATION.md](MAP_AND_LOCATION.md)
 - Spacedevs/OpenWeather 429: сервер **15 мин cooldown**, stale из кэша; `npm run kiosk` для постоянной вкладки.
 - **Launcher:** `Jarvis.lnk` в корне — двойной клик, без терминала; Edge/Chrome по умолчанию.
 - PWA: `public/manifest.webmanifest` — Install app (опционально).

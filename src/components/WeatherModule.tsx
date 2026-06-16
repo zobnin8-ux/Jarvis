@@ -2,9 +2,11 @@
 
 import { useCallback, useMemo } from "react";
 import { WeatherHudIcon } from "@/components/WeatherHudIcon";
+import { WeatherLocationHead } from "@/components/WeatherLocationHead";
 import { WeatherRailIcon, type WeatherRailIconId } from "@/components/WeatherRailIcon";
 import { Panel } from "@/components/ui/Panel";
 import { ServiceUnavailablePanel } from "@/components/ui/ServiceUnavailablePanel";
+import { useDeviceLocation } from "@/context/DeviceLocationContext";
 import { useAdaptivePoll } from "@/hooks/useAdaptivePoll";
 import { useIntervalFetch } from "@/hooks/useIntervalFetch";
 import { fetchWeather } from "@/services/weatherService";
@@ -12,24 +14,26 @@ import { getModuleConfig } from "@/lib/moduleRegistry";
 import { getWeatherDayStatus, resolveWeatherMood } from "@/lib/weatherMood";
 import { formatTime12h } from "@/lib/format";
 
-const WEATHER_LOCATION = (
-  process.env.NEXT_PUBLIC_WEATHER_CITY ?? "San Jose"
-).toUpperCase();
-
 interface WeatherModuleProps {
   compact?: boolean;
 }
 
 export function WeatherModule({ compact = false }: WeatherModuleProps) {
+  const { lat, lon, label, source, cacheKey, ready } = useDeviceLocation();
   const config = getModuleConfig("weather");
-  const fetcher = useCallback(() => fetchWeather(), []);
+  const fetcher = useCallback(() => {
+    if (lat == null || lon == null) {
+      return Promise.reject(new Error("Location not ready"));
+    }
+    return fetchWeather(lat, lon);
+  }, [lat, lon]);
   const dayInterval = config?.refreshInterval ?? 900000;
   const poll = useAdaptivePoll("weather", dayInterval);
   const { data, loading, unavailableService } = useIntervalFetch({
     fetcher,
     interval: poll.intervalMs,
-    paused: poll.paused,
-    cacheKey: "jarvis-cache-v2-weather",
+    paused: poll.paused || !ready,
+    cacheKey: cacheKey ? `jarvis-cache-v2-weather-${cacheKey}` : undefined,
     healthId: "weather",
   });
 
@@ -56,16 +60,16 @@ export function WeatherModule({ compact = false }: WeatherModuleProps) {
       >
         {unavailableService ? (
           <ServiceUnavailablePanel service={unavailableService} />
-        ) : loading && !data ? (
+        ) : !ready || (loading && !data) ? (
           <div className="text-sm text-white/30">Acquiring telemetry...</div>
         ) : data ? (
           <>
-            <div className="weather-compact-head">
-              <div className="weather-location">{WEATHER_LOCATION}</div>
-              {dayStatus && (
-                <div className="weather-day-status">{dayStatus}</div>
-              )}
-            </div>
+            <WeatherLocationHead
+              compact
+              label={label}
+              source={source}
+              dayStatus={dayStatus}
+            />
 
             <div className="weather-compact-main">
               <WeatherHudIcon icon={data.icon} mood={mood} size="sm" />
@@ -99,16 +103,15 @@ export function WeatherModule({ compact = false }: WeatherModuleProps) {
       <div className="relative z-[1] flex flex-col gap-3">
         {unavailableService ? (
           <ServiceUnavailablePanel service={unavailableService} />
-        ) : loading && !data ? (
+        ) : !ready || (loading && !data) ? (
           <div className="text-sm text-white/30">Acquiring telemetry...</div>
         ) : data ? (
           <section className="weather-hero" aria-label="Current conditions">
-            <div className="weather-hero-head">
-              <div className="weather-location">{WEATHER_LOCATION}</div>
-              {dayStatus && (
-                <div className="weather-day-status">{dayStatus}</div>
-              )}
-            </div>
+            <WeatherLocationHead
+              label={label}
+              source={source}
+              dayStatus={dayStatus}
+            />
 
             <div className="weather-hero-body">
               <div

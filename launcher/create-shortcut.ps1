@@ -6,10 +6,10 @@ $ProjectRoot = Split-Path $LauncherDir -Parent
 $ExePath = Join-Path $LauncherDir "Jarvis.exe"
 $VbsPath = Join-Path $LauncherDir "Jarvis.vbs"
 
-if (Test-Path $ExePath) {
-  $Target = $ExePath
-} elseif (Test-Path $VbsPath) {
+if (Test-Path $VbsPath) {
   $Target = $VbsPath
+} elseif (Test-Path $ExePath) {
+  $Target = $ExePath
 } else {
   Write-Error "Nothing to launch. Run: npm run launcher:build"
   exit 1

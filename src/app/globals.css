@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 /* ?? JARVIS (default) ????????????????????????????????????? */
 :root,
@@ -1312,6 +1313,42 @@ body {
 .weather-hero-head {
   width: 100%;
   text-align: center;
+}
+
+.weather-location-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.45rem;
+}
+
+.weather-hero-head--compact {
+  text-align: left;
+}
+
+.weather-hero-head--compact .weather-location-row {
+  justify-content: flex-start;
+}
+
+.weather-location-badge {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.44rem;
+  letter-spacing: 0.12em;
+  padding: 0.12rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(234, 242, 255, 0.12);
+  color: rgba(234, 242, 255, 0.42);
+}
+
+.weather-location-badge--live {
+  border-color: rgba(120, 255, 180, 0.28);
+  color: rgba(120, 255, 180, 0.88);
+}
+
+.weather-location-badge--home {
+  border-color: rgba(85, 214, 255, 0.18);
+  color: rgba(85, 214, 255, 0.72);
 }
 
 .weather-hero-body {
@@ -2678,10 +2715,15 @@ body {
 
 .footer-controls {
   width: 100%;
+  min-width: 0;
+  overflow: visible;
 }
 
 .footer-controls-left {
   min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: thin;
 }
 
 .footer-audio-row {
@@ -2689,6 +2731,228 @@ body {
   grid-template-columns: repeat(2, minmax(0, 280px));
   align-items: stretch;
   gap: 0.5rem;
+}
+
+.footer-map-slot {
+  flex: 1 1 22rem;
+  min-width: 0;
+  max-width: 36rem;
+  display: flex;
+  transform: none;
+  isolation: isolate;
+}
+
+.command-footer {
+  transform: none !important;
+  will-change: auto;
+}
+
+.footer-map-unit {
+  position: relative;
+  display: flex;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 11.35rem;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(85, 214, 255, 0.16);
+  background:
+    linear-gradient(180deg, rgba(14, 22, 34, 0.92) 0%, rgba(8, 12, 18, 0.96) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(154, 232, 255, 0.08),
+    0 0 28px rgba(85, 214, 255, 0.07);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.footer-map-unit:hover {
+  border-color: rgba(85, 214, 255, 0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(154, 232, 255, 0.12),
+    0 0 36px rgba(85, 214, 255, 0.12);
+}
+
+.footer-map-frame {
+  pointer-events: none;
+  position: absolute;
+  inset: 0.4rem;
+  z-index: 0;
+  border: 1px solid rgba(85, 214, 255, 0.1);
+  border-radius: 0.35rem;
+}
+
+.footer-map-unit--compact {
+  height: 8.5rem;
+}
+
+.command-shell.is-narrow .footer-map-slot {
+  flex: 1 1 9rem;
+  max-width: none;
+}
+
+.footer-map-unit--loading .footer-map-canvas {
+  opacity: 0.35;
+}
+
+.footer-map-head {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.65rem;
+  min-height: 1.45rem;
+  border-bottom: 1px solid rgba(85, 214, 255, 0.08);
+  background: rgba(6, 10, 16, 0.55);
+}
+
+.footer-map-title {
+  flex-shrink: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.46rem;
+  letter-spacing: 0.16em;
+  color: rgba(85, 214, 255, 0.55);
+}
+
+.footer-map-head .label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.08em;
+  color: rgba(234, 242, 255, 0.72);
+}
+
+.footer-map-live,
+.footer-map-fallback {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.44rem;
+  letter-spacing: 0.1em;
+  color: rgba(234, 242, 255, 0.42);
+}
+
+.footer-map-live {
+  color: rgba(120, 255, 180, 0.85);
+}
+
+.footer-map-live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(120, 255, 180, 0.9);
+  box-shadow: 0 0 6px rgba(120, 255, 180, 0.55);
+}
+
+.footer-map-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.footer-map-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: 0.25rem;
+  border: 1px solid rgba(85, 214, 255, 0.18);
+  background: rgba(8, 14, 22, 0.72);
+  color: rgba(234, 242, 255, 0.72);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.44rem;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.footer-map-action:hover:not(:disabled) {
+  border-color: rgba(85, 214, 255, 0.34);
+  color: rgba(234, 242, 255, 0.95);
+}
+
+.footer-map-action:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.footer-map-canvas .leaflet-control-zoom {
+  margin-top: 0.35rem !important;
+  margin-right: 0.35rem !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.footer-map-canvas .leaflet-control-zoom a {
+  width: 1.35rem !important;
+  height: 1.35rem !important;
+  line-height: 1.35rem !important;
+  border: 1px solid rgba(20, 28, 38, 0.12) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: rgba(20, 28, 38, 0.85) !important;
+  font-size: 0.95rem !important;
+}
+
+.footer-map-canvas .leaflet-control-zoom a:hover {
+  background: #ffffff !important;
+}
+
+.footer-map-canvas {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 4.5rem;
+  width: 100%;
+  background: #dce3ea;
+  touch-action: none;
+  overscroll-behavior: contain;
+  cursor: grab;
+  user-select: none;
+}
+
+.footer-map-canvas:active {
+  cursor: grabbing;
+}
+
+.footer-map-canvas .leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #dce3ea;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  cursor: inherit;
+}
+
+.footer-map-canvas .leaflet-tile-pane {
+  opacity: 1;
+}
+
+.footer-map-canvas .leaflet-control-attribution {
+  margin: 0 !important;
+  padding: 0.1rem 0.35rem !important;
+  font-size: 0.45rem !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.02em;
+  color: rgba(20, 28, 38, 0.72) !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  border-top-left-radius: 0.25rem;
+}
+
+.footer-map-canvas .leaflet-control-attribution a {
+  color: rgba(20, 28, 38, 0.85) !important;
 }
 
 .footer-audio-unit {

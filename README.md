@@ -27,7 +27,8 @@
 13. [Безопасность](#безопасность)
 14. [Зарезервированные модули](#зарезервированные-модули)
 15. [Известные ограничения](#известные-ограничения)
-16. [Roadmap](#roadmap)
+16. [Карта и геолокация](#карта-и-геолокация)
+17. [Roadmap](#roadmap)
 
 ---
 
@@ -48,7 +49,7 @@
 ├────────────────────────────────────────────────────────────────┤
 │  SV TICKER — tech-события + котировки (бегущая строка)         │
 ├────────────────────────────────────────────────────────────────┤
-│  Ambient Audio · Audiobooks  ·  ISS TELEMETRY  ·  Voice Console ◯           │
+│  Ambient Audio · Audiobooks · MAP (OSM) · ISS · Voice Console ◯           │
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -66,7 +67,7 @@
 ├─────────────┴──────────────────────┴───────────────────────┤
 │  Briefing teaser (1 строка → drawer)                        │
 ├────────────────────────────────────────────────────────────┤
-│  Ambient Audio · Audiobooks · Voice Console                │
+│  Ambient Audio · Audiobooks · MAP · Voice Console                │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -859,6 +860,21 @@ Invoke-RestMethod http://localhost:3001/api/iss-telemetry
 - Post-launch report держится **12 часов**, затем переключается на **следующий** ближайший пуск из API (не «ваш» Starlink навсегда).
 - Briefing cache: память + **`.data/briefing-cache.json`** (переживает рестарт сервера).
 - System Status подписи на английском; плашки недоступности — на русском.
+- Карта — **OSM** (бесплатно); pan/zoom в футере; геолокация — одна точка на карту и погоду. Google Maps не подключён — см. [docs/MAP_AND_LOCATION.md](docs/MAP_AND_LOCATION.md).
+
+---
+
+## Карта и геолокация
+
+**Решение:** сейчас **OpenStreetMap + Leaflet** — достаточно для личного HUD, **$0**, без Google Cloud.
+
+| | |
+|---|---|
+| **Карта** | футер между Audiobooks и ISS; drag, колесо/+−, ◎, ссылка OSM |
+| **Локация** | browser geolocation → **ЗДЕСЬ**; fallback San Jose/env → **HOME** |
+| **Google Maps** | опционально позже; ~10k бесплатных загрузок/мес; для «иногда открыл» ≈ **$0** |
+
+Подробно (лимиты Google, когда списывают, как включить без сюрпризов): **[docs/MAP_AND_LOCATION.md](docs/MAP_AND_LOCATION.md)**
 
 ---
 
@@ -897,7 +913,8 @@ Private project. All rights reserved.
 
 - [The Space Devs](https://thespacedevs.com/) — launch data  
 - [Where The ISS At](https://wheretheiss.at/) · [CelesTrak](https://celestrak.org/) — ISS position / TLE  
-- [Open-Meteo](https://open-meteo.com/) — reverse geocoding  
+- [OpenStreetMap](https://www.openstreetmap.org/) · [Nominatim](https://nominatim.org/) — карта и reverse geocode (устройство)  
+- [Open-Meteo](https://open-meteo.com/) — geocoding fallback / ISS  
 - [NASA RSS](https://www.nasa.gov/rss/dyn/breaking_news.rss) — breaking news  
 - [SomaFM](https://somafm.com/) · [Radio Paradise](https://radioparadise.com/) — streams  
 - [OpenWeather](https://openweathermap.org/) · [Anthropic](https://anthropic.com/) · [ElevenLabs](https://elevenlabs.io/) · [Finnhub](https://finnhub.io/)

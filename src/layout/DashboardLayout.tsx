@@ -14,6 +14,7 @@ import { ClockMeta } from "@/components/ClockMeta";
 import { ClockModule } from "@/components/ClockModule";
 import { SpaceModule } from "@/components/SpaceModule";
 import { BriefingModule } from "@/components/BriefingModule";
+import { LocationMapModule } from "@/components/LocationMapModule";
 import { AmbientAudioModule } from "@/components/AmbientAudioModule";
 import { AudiobookPlayer } from "@/components/AudiobookPlayer";
 import { SiliconValleyModule } from "@/components/SiliconValleyModule";
@@ -155,19 +156,14 @@ export function DashboardLayout({ futureSlot }: DashboardLayoutProps) {
         </div>
       )}
 
-      <motion.footer
-        initial={mounted ? { opacity: 0 } : false}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1, delay: 0.6 }}
-        className="layer-ui relative z-20 mt-2 flex shrink-0 flex-col gap-2"
-      >
+      <footer className="layer-ui command-footer relative z-20 mt-2 flex shrink-0 flex-col gap-2">
         {!isNarrow && (
           <ModuleErrorBoundary name="Silicon Valley">
             <SiliconValleyModule />
           </ModuleErrorBoundary>
         )}
-        <div className="footer-controls flex items-end justify-between gap-2 md:gap-4">
-          <div className="footer-controls-left min-w-0 flex-1">
+        <div className="footer-controls flex items-end justify-between gap-2 md:gap-3">
+          <div className="footer-controls-left shrink-0">
             <div className="footer-audio-row">
               <AmbientAudioModule />
               <ModuleErrorBoundary name="Audiobooks">
@@ -175,6 +171,13 @@ export function DashboardLayout({ futureSlot }: DashboardLayoutProps) {
               </ModuleErrorBoundary>
             </div>
           </div>
+
+          <div className="footer-map-slot">
+            <ModuleErrorBoundary name="Location">
+              <LocationMapModule compact={isNarrow} />
+            </ModuleErrorBoundary>
+          </div>
+
           {!isNarrow && (
             <div className="footer-telemetry hidden min-w-0 flex-1 md:flex md:justify-center">
               <ModuleErrorBoundary name="ISS Telemetry">
@@ -192,7 +195,7 @@ export function DashboardLayout({ futureSlot }: DashboardLayoutProps) {
             <VoiceConsole />
           </div>
         </div>
-      </motion.footer>
+      </footer>
 
       <HudDrawer
         open={drawer !== null}

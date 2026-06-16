@@ -193,6 +193,12 @@ export interface GmailData {
   demo?: boolean;
 }
 
+export interface LocationData {
+  lat: number;
+  lon: number;
+  label: string;
+}
+
 export type ModuleId =
   | "weather"
   | "calendar"

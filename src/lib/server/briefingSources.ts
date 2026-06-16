@@ -91,24 +91,24 @@ function isCalendarConfigured(): boolean {
   return Boolean(loadServiceAccount() && process.env.GOOGLE_CALENDAR_ID);
 }
 
-async function fetchLiveWeather(): Promise<WeatherData> {
+async function fetchLiveWeather(lat: number, lon: number): Promise<WeatherData> {
   const apiKey = process.env.OPENWEATHER_API_KEY;
   if (!apiKey) throw new Error("Missing OpenWeather key");
 
-  const lat = process.env.WEATHER_LAT ?? "37.338207";
-  const lon = process.env.WEATHER_LON ?? "-121.886330";
+  const latStr = String(lat);
+  const lonStr = String(lon);
 
   const [currentRes, forecastRes, aqiRes] = await Promise.all([
     fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`,
+      `https://api.openweathermap.org/data/2.5/weather?lat=${latStr}&lon=${lonStr}&units=metric&appid=${apiKey}`,
       { next: { revalidate: 900 } }
     ),
     fetch(
-      `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`,
+      `https://api.openweathermap.org/data/2.5/forecast?lat=${latStr}&lon=${lonStr}&units=metric&appid=${apiKey}`,
       { next: { revalidate: 900 } }
     ),
     fetch(
-      `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`,
+      `https://api.openweathermap.org/data/2.5/air_pollution?lat=${latStr}&lon=${lonStr}&appid=${apiKey}`,
       { next: { revalidate: 900 } }
     ),
   ]);
@@ -175,33 +175,53 @@ async function fetchLiveWeather(): Promise<WeatherData> {
 }
 
 const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
-let weatherCache: { data: WeatherData; expiresAt: number } | null = null;
+const weatherCacheByKey = new Map<
+  string,
+  { data: WeatherData; expiresAt: number }
+>();
 let lastWeatherUtcOffsetSec: number | undefined;
+
+function weatherCacheKey(lat: number, lon: number): string {
+  return `${lat.toFixed(2)},${lon.toFixed(2)}`;
+}
 
 export function getWeatherUtcOffsetSec(): number | undefined {
   return lastWeatherUtcOffsetSec;
 }
 
-export async function resolveWeatherSnapshot(): Promise<SourceResult<WeatherData>> {
+export async function resolveWeatherSnapshot(coords?: {
+  lat: number;
+  lon: number;
+}): Promise<SourceResult<WeatherData>> {
   if (!process.env.OPENWEATHER_API_KEY) {
     return { kind: "demo", data: DEMO_WEATHER };
   }
 
+  const lat = coords?.lat ?? Number.parseFloat(process.env.WEATHER_LAT ?? "37.338207");
+  const lon = coords?.lon ?? Number.parseFloat(process.env.WEATHER_LON ?? "-121.886330");
+  const cacheKey = weatherCacheKey(lat, lon);
   const now = Date.now();
-  if (weatherCache && weatherCache.expiresAt > now) {
-    return { kind: "live", data: weatherCache.data };
+  const cached = weatherCacheByKey.get(cacheKey);
+
+  if (cached && cached.expiresAt > now) {
+    return { kind: "live", data: cached.data };
   }
 
   try {
-    const data = await fetchLiveWeather();
-    weatherCache = { data, expiresAt: now + WEATHER_CACHE_TTL_MS };
+    const data = await fetchLiveWeather(lat, lon);
+    weatherCacheByKey.set(cacheKey, {
+      data,
+      expiresAt: now + WEATHER_CACHE_TTL_MS,
+    });
     return { kind: "live", data };
   } catch (err) {
     logError("briefing.weather", err);
-    if (weatherCache) {
-      weatherCache.expiresAt =
-        Date.now() + rateLimitCooldownMs(err, WEATHER_CACHE_TTL_MS);
-      return { kind: "live", data: weatherCache.data };
+    if (cached) {
+      weatherCacheByKey.set(cacheKey, {
+        data: cached.data,
+        expiresAt: Date.now() + rateLimitCooldownMs(err, WEATHER_CACHE_TTL_MS),
+      });
+      return { kind: "live", data: cached.data };
     }
     return { kind: "unavailable" };
   }
