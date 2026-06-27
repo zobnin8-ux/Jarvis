@@ -123,7 +123,8 @@ function Get-ChromePath {
 function Open-JarvisBrowser([string]$TargetUrl) {
   $chrome = Get-ChromePath
   if ($chrome) {
-    Start-Process -FilePath $chrome -ArgumentList @($TargetUrl, "--new-window")
+    # --app: отдельное окно; при закрытии вкладка шлёт unregister → сервер глохнет
+    Start-Process -FilePath $chrome -ArgumentList @("--app=$TargetUrl")
     return
   }
   Start-Process $TargetUrl

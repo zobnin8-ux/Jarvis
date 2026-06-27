@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { LifecycleGuard } from "@/components/LifecycleGuard";
 import { THEME } from "@/config/theme";
 import "./globals.css";
 
@@ -46,6 +47,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
+        <LifecycleGuard />
         {children}
       </body>
     </html>

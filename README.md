@@ -320,6 +320,14 @@ npm start            # production вручную (если без launcher)
 
 \* Без ключа — demo-погода.
 
+### Серверные — lifecycle (production)
+
+| Переменная | Обязательно | Описание |
+|------------|-------------|----------|
+| `JARVIS_LIFECYCLE_SHUTDOWN` | нет | `1` — гасить Node при закрытии всех вкладок; `0` — выкл; по умолчанию **включено в `production`** |
+
+Клиент шлёт heartbeat на `POST /api/lifecycle` каждые 8 с (`LifecycleGuard.tsx`). Сервер (`src/lib/server/lifecycle.ts`) завершает процесс через ~5 с после последней вкладки. В `npm run dev` shutdown **выключен**.
+
 ### Серверные — календарь
 
 | Переменная | Обязательно | Описание |
@@ -577,6 +585,7 @@ onFinal (один раз) → /api/ask → speak(text)
 | POST | `/api/ask` | `{ query }` → `{ text }` |
 | GET | `/api/audiobooks` | `AudiobookData` (YouTube uploads) |
 | POST | `/api/tts` | `{ text }` → `audio/mpeg` или `{ ok: false }` |
+| POST | `/api/lifecycle` | `{ action, sessionId }` — heartbeat вкладки (production shutdown) |
 
 Типы данных: `src/types/modules.ts`.  
 Контракт API: `src/types/api.ts`.

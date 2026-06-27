@@ -9,10 +9,10 @@ aliases:
   - Jarvis
   - JARVIS
 status: active
-version: v0.10
 repo: https://github.com/zobnin8-ux/Jarvis
 stack: Next.js 15 · React 19 · TypeScript
-updated: 2026-06-11
+updated: 2026-06-16
+version: v0.10
 ---
 
 # Jarvis — Personal Command Center
@@ -318,6 +318,7 @@ npm test         # Vitest
 - **Карта:** OSM сейчас, Google Maps опционально — [MAP_AND_LOCATION.md](MAP_AND_LOCATION.md)
 - Spacedevs/OpenWeather 429: сервер **15 мин cooldown**, stale из кэша; `npm run kiosk` для постоянной вкладки.
 - **Launcher:** `Jarvis.lnk` в корне — двойной клик, без терминала; Edge/Chrome по умолчанию.
+- **Lifecycle:** `LifecycleGuard` + `POST /api/lifecycle` — в production Node гасится, когда закрыта последняя вкладка (`JARVIS_LIFECYCLE_SHUTDOWN`).
 - PWA: `public/manifest.webmanifest` — Install app (опционально).
 - Ночь: **авто 23–7** или вручную — **нулевой API**, статичный HUD; радио при включении — полный реактор.
 - Голос: `/api/ask` — briefing, World News, почта, ISS; «включи радио».

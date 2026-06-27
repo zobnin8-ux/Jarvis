@@ -196,7 +196,7 @@ function chromePath() {
 function openBrowser() {
   const chrome = chromePath();
   if (chrome) {
-    spawn(chrome, [URL, "--new-window"], {
+    spawn(chrome, [`--app=${URL}`], {
       detached: true,
       stdio: "ignore",
       windowsHide: true,
